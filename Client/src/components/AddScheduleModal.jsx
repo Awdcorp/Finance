@@ -8,7 +8,7 @@ export default function AddScheduleModal({
   isOpen,
   onClose,
   isEditMode = false,
-  initialData = null,
+  defaultValues = {},       // ✅ Replaces initialData
   onSave = null,
   onDelete = null,
   groupIndex = 0,
@@ -18,22 +18,23 @@ export default function AddScheduleModal({
   const [date, setDate] = useState('')
   const [category, setCategory] = useState('')
   const [icon, setIcon] = useState('')
-  const [repeat, setRepeat] = useState(true) // ✅ renamed from isRecurring
+  const [repeat, setRepeat] = useState(true)
   const [repeatEndDate, setRepeatEndDate] = useState('')
 
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
   const groupTitle = scheduleGroups[groupIndex]?.title || 'Untitled'
   const addItemToGroup = useFinance((state) => state.addItemToGroup)
 
+  // ✅ Prefill form when modal opens — even for non-edit mode
   useEffect(() => {
-    if (isEditMode && initialData) {
-      setTitle(initialData.title || '')
-      setAmount(initialData.amount || '')
-      setDate(initialData.date || '')
-      setCategory(initialData.category || '')
-      setIcon(initialData.icon || '')
-      setRepeat(initialData.repeat || false) // ✅ use correct field
-      setRepeatEndDate(initialData.repeatEndDate || '')
+    if (defaultValues) {
+      setTitle(defaultValues.title || '')
+      setAmount(defaultValues.amount || '')
+      setDate(defaultValues.date || '')
+      setCategory(defaultValues.category || '')
+      setIcon(defaultValues.icon || '')
+      setRepeat(defaultValues.repeat ?? true)
+      setRepeatEndDate(defaultValues.repeatEndDate || '')
     } else {
       setTitle('')
       setAmount('')
@@ -43,7 +44,7 @@ export default function AddScheduleModal({
       setRepeat(true)
       setRepeatEndDate('')
     }
-  }, [isOpen, isEditMode, initialData])
+  }, [isOpen, defaultValues])
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -59,13 +60,15 @@ export default function AddScheduleModal({
       date,
       icon: icon || '📅',
       category,
-      repeat, // ✅ this is what Dashboard expects
+      repeat,
       repeatEndDate: repeat ? repeatEndDate : '',
     }
 
     if (isEditMode && onSave) {
       onSave(newItem)
       toast.success('Item updated successfully')
+    } else if (onSave) {
+      onSave(newItem) // For pending schedule mode
     } else {
       addItemToGroup(groupIndex, newItem)
       toast.success('Item added successfully')
@@ -163,16 +166,17 @@ export default function AddScheduleModal({
             </div>
 
             {repeat && (
-            <div>
+              <div>
                 <label className="block mb-1">Repeat Until (optional)</label>
                 <input
-                type="date"
-                value={repeatEndDate}
-                onChange={(e) => setRepeatEndDate(e.target.value)}
-                className="w-full p-2 bg-zinc-800 rounded-md border border-zinc-600"
+                  type="date"
+                  value={repeatEndDate}
+                  onChange={(e) => setRepeatEndDate(e.target.value)}
+                  className="w-full p-2 bg-zinc-800 rounded-md border border-zinc-600"
                 />
-            </div>
+              </div>
             )}
+
             <button
               type="submit"
               className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-semibold py-2 rounded-md"

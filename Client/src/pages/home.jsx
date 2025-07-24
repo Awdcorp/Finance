@@ -9,6 +9,7 @@ import BottomNav from "../components/BottomNav"
 import useFinance from "../state/finance"
 import getItemsForMonth from "../utils/getItemsForMonth" // ✅ NEW
 import getProjectedBalance from "../utils/getProjectedBalance"
+import PendingTransactionList from "../components/PendingTransactionList"
 
 export default function Dashboard() {
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
@@ -97,6 +98,7 @@ scheduleGroups.forEach((g, i) => {
       </button>
 
       <AddGroupModal isOpen={isAddGroupOpen} onClose={() => setIsAddGroupOpen(false)} />
+      <PendingTransactionList />
       <BottomNav />
     </div>
   )

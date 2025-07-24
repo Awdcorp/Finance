@@ -1,4 +1,3 @@
-// src/state/finance.js
 import { create } from 'zustand'
 
 const useFinance = create((set) => ({
@@ -18,17 +17,17 @@ const useFinance = create((set) => ({
 
   renameGroup: (index, newTitle) =>
     set((state) => {
-        const updated = [...state.scheduleGroups]
-        updated[index].title = newTitle
-        return { scheduleGroups: updated }
-  }),
+      const updated = [...state.scheduleGroups]
+      updated[index].title = newTitle
+      return { scheduleGroups: updated }
+    }),
 
   deleteGroup: (index) =>
     set((state) => {
-        const updated = [...state.scheduleGroups]
-        updated.splice(index, 1)
-        return { scheduleGroups: updated }
-  }),
+      const updated = [...state.scheduleGroups]
+      updated.splice(index, 1)
+      return { scheduleGroups: updated }
+    }),
 
   // ✅ Add item to a specific group
   addItemToGroup: (groupIndex, item) =>
@@ -78,6 +77,36 @@ const useFinance = create((set) => ({
         ],
       },
     })),
+
+  // ✅ New: Pending Transactions (Unassigned Payments)
+    pendingItems: [],
+
+    addPendingItem: (item) =>
+    set((state) => ({
+        pendingItems: [
+        ...state.pendingItems,
+        {
+            title: item.title || "",
+            amount: item.amount || 0,
+            date: null,
+            notes: item.notes || "",
+            icon: item.icon || null,
+            isDraft: true,
+        },
+        ],
+    })),
+
+    removePendingItem: (index) =>
+    set((state) => ({
+        pendingItems: state.pendingItems.filter((_, i) => i !== index),
+    })),
+
+    editPendingItem: (index, updated) =>
+    set((state) => {
+        const items = [...state.pendingItems]
+        items[index] = { ...items[index], ...updated }
+        return { pendingItems: items }
+    }),
 }))
 
 export default useFinance
