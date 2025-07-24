@@ -3,22 +3,24 @@ import useFinance from "../state/finance"
 import AddScheduleModal from "./AddScheduleModal"
 import AddGroupModal from "./AddGroupModal"
 
-export default function ScheduleList() {
+export default function ScheduleList({ items = [] }) {
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
   const editItemInGroup = useFinance((state) => state.editItemInGroup)
-  const addItemToGroup = useFinance((state) => state.addItemToGroup) // ✅ New
+  const addItemToGroup = useFinance((state) => state.addItemToGroup)
   const deleteItemFromGroup = useFinance((state) => state.deleteItemFromGroup)
   const renameGroup = useFinance((state) => state.renameGroup)
   const deleteGroup = useFinance((state) => state.deleteGroup)
 
-  const [editInfo, setEditInfo] = useState(null) // { groupIndex, itemIndex or null }
+  const [editInfo, setEditInfo] = useState(null)
   const [menuOpenIndex, setMenuOpenIndex] = useState(null)
   const [editGroupInfo, setEditGroupInfo] = useState(null)
 
   return (
     <div className="px-4 mt-4 relative">
       {scheduleGroups.map((group, groupIndex) => {
-        const totalAmount = group.items.reduce((acc, item) => acc + item.amount, 0)
+        // Show both real + repeated items by matching groupIndex
+        const groupItems = items.filter((item) => item.groupIndex === groupIndex)
+        const totalAmount = groupItems.reduce((acc, item) => acc + item.amount, 0)
 
         return (
           <div key={groupIndex} className="mb-6 relative">
@@ -41,7 +43,6 @@ export default function ScheduleList() {
                   ⋮
                 </button>
 
-                {/* Dropdown Menu */}
                 {menuOpenIndex === groupIndex && (
                   <div className="absolute right-0 mt-2 w-40 bg-neutral-800 shadow-lg rounded-lg z-10 border border-neutral-700">
                     <button
@@ -71,51 +72,66 @@ export default function ScheduleList() {
 
             {/* Group Card */}
             <div className="bg-neutral-800 rounded-xl p-4 flex flex-col gap-3">
-                {group.items.length === 0 ? (
-                    <div className="text-center text-gray-500 text-sm italic">No items in this group yet</div>
-                ) : (
-                    group.items.map((item, itemIndex) => (
+              {groupItems.length === 0 ? (
+                <div className="text-center text-gray-500 text-sm italic">
+                  No items in this group yet
+                </div>
+              ) : (
+                groupItems.map((item, i) => {
+                  const realItemIndex = scheduleGroups[groupIndex].items.findIndex(
+                    (stored) =>
+                      stored.date === item.date &&
+                      stored.title === item.title &&
+                      Math.abs(stored.amount - item.amount) < 0.01
+                  );
+
+                  return (
                     <div
-                        key={itemIndex}
-                        className="py-3 flex justify-between items-start text-sm cursor-pointer border-b border-neutral-700 last:border-b-0"
-                        onClick={() => setEditInfo({ groupIndex, itemIndex })}
+                      key={i}
+                      className="py-3 flex justify-between items-start text-sm cursor-pointer border-b border-neutral-700 last:border-b-0"
+                      onClick={() => {
+                        // Only allow editing if item is original, not generated
+                        if (realItemIndex !== -1) {
+                          setEditInfo({ groupIndex, itemIndex: realItemIndex });
+                        }
+                      }}
                     >
-                        {/* Left */}
-                        <div className="flex gap-3 items-start">
+                      {/* Left */}
+                      <div className="flex gap-3 items-start">
                         <span className="text-xl">{item.icon}</span>
                         <div className="text-white">
-                            <div className="font-medium">{item.title}</div>
+                          <div className="font-medium">{item.title}</div>
                         </div>
-                        </div>
+                      </div>
 
-                        {/* Right */}
-                        <div className="text-right space-y-1">
+                      {/* Right */}
+                      <div className="text-right space-y-1">
                         <div className="text-xs text-gray-400">{item.date}</div>
                         <div
-                            className={`text-sm font-semibold px-2 py-1 rounded-md inline-block ${
+                          className={`text-sm font-semibold px-2 py-1 rounded-md inline-block ${
                             item.amount < 0
-                                ? "bg-red-500/20 text-red-400"
-                                : "bg-green-500/20 text-green-400"
-                            }`}
+                              ? "bg-red-500/20 text-red-400"
+                              : "bg-green-500/20 text-green-400"
+                          }`}
                         >
-                            {item.amount.toFixed(2)} €
+                          {item.amount.toFixed(2)} €
                         </div>
-                        </div>
+                      </div>
                     </div>
-                    ))
-                )}
+                  );
+                })
+              )}
 
-                {/* Add New Item Button */}
-                <button
-                    className="text-yellow-400 hover:text-yellow-300 text-sm mt-2"
-                    onClick={() => setEditInfo({ groupIndex, itemIndex: null })}
-                >
-                    + Add Item
-                </button>
-                </div>
-
+              {/* Add New Item Button */}
+              <button
+                className="text-yellow-400 hover:text-yellow-300 text-sm mt-2"
+                onClick={() => setEditInfo({ groupIndex, itemIndex: null })}
+              >
+                + Add Item
+              </button>
+            </div>
           </div>
-        )
+        );
       })}
 
       {/* Add/Edit Item Modal */}
@@ -163,5 +179,5 @@ export default function ScheduleList() {
         />
       )}
     </div>
-  )
+  );
 }

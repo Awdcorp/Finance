@@ -11,16 +11,17 @@ export default function AddScheduleModal({
   initialData = null,
   onSave = null,
   onDelete = null,
-  groupIndex = 0, // NEW PROP: to know which group to add to
+  groupIndex = 0,
 }) {
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState('')
   const [category, setCategory] = useState('')
   const [icon, setIcon] = useState('')
-  const [isRecurring, setIsRecurring] = useState(true)
+  const [repeat, setRepeat] = useState(true) // ✅ renamed from isRecurring
+
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
-  const groupTitle = scheduleGroups[groupIndex]?.title || "Untitled"
+  const groupTitle = scheduleGroups[groupIndex]?.title || 'Untitled'
   const addItemToGroup = useFinance((state) => state.addItemToGroup)
 
   useEffect(() => {
@@ -30,14 +31,14 @@ export default function AddScheduleModal({
       setDate(initialData.date || '')
       setCategory(initialData.category || '')
       setIcon(initialData.icon || '')
-      setIsRecurring(initialData.isRecurring || false)
+      setRepeat(initialData.repeat || false) // ✅ use correct field
     } else {
       setTitle('')
       setAmount('')
       setDate('')
       setCategory('')
       setIcon('')
-      setIsRecurring(true)
+      setRepeat(true)
     }
   }, [isOpen, isEditMode, initialData])
 
@@ -55,14 +56,14 @@ export default function AddScheduleModal({
       date,
       icon: icon || '📅',
       category,
-      isRecurring,
+      repeat, // ✅ this is what Dashboard expects
     }
 
     if (isEditMode && onSave) {
       onSave(newItem)
       toast.success('Item updated successfully')
     } else {
-      addItemToGroup(groupIndex, newItem) // ✅ Use new group logic
+      addItemToGroup(groupIndex, newItem)
       toast.success('Item added successfully')
     }
 
@@ -92,31 +93,28 @@ export default function AddScheduleModal({
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4 text-sm text-white">
-            {/* Title */}
             <div>
               <label className="block mb-1">Title *</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full p-2 bg-zinc-800 rounded-md border border-zinc-600 focus:outline-none"
+                className="w-full p-2 bg-zinc-800 rounded-md border border-zinc-600"
                 placeholder="e.g. Rent, EMI"
               />
             </div>
 
-            {/* Amount */}
             <div>
               <label className="block mb-1">Amount (€) *</label>
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full p-2 bg-zinc-800 rounded-md border border-zinc-600 focus:outline-none"
+                className="w-full p-2 bg-zinc-800 rounded-md border border-zinc-600"
                 placeholder="-1200"
               />
             </div>
 
-            {/* Date */}
             <div>
               <label className="block mb-1">Date *</label>
               <input
@@ -127,7 +125,6 @@ export default function AddScheduleModal({
               />
             </div>
 
-            {/* Icon */}
             <div>
               <label className="block mb-1">Icon (Emoji)</label>
               <input
@@ -140,7 +137,6 @@ export default function AddScheduleModal({
               />
             </div>
 
-            {/* Category */}
             <div>
               <label className="block mb-1">Category</label>
               <input
@@ -152,18 +148,16 @@ export default function AddScheduleModal({
               />
             </div>
 
-            {/* Recurring */}
             <div className="flex items-center">
               <input
                 type="checkbox"
-                checked={isRecurring}
-                onChange={(e) => setIsRecurring(e.target.checked)}
+                checked={repeat}
+                onChange={(e) => setRepeat(e.target.checked)}
                 className="mr-2"
               />
               <label>Repeat every month</label>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-semibold py-2 rounded-md"
@@ -171,7 +165,6 @@ export default function AddScheduleModal({
               {isEditMode ? 'Save Changes' : 'Add Item'}
             </button>
 
-            {/* Delete */}
             {isEditMode && (
               <button
                 type="button"

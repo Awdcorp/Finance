@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import AddGroupModal from "../components/AddGroupModal" // 👈 make sure it’s created
+import AddGroupModal from "../components/AddGroupModal"
 import Header from "../components/Header"
 import TotalBalance from "../components/TotalBalance"
 import BalanceCard from "../components/BalanceCard"
@@ -7,21 +7,22 @@ import CalendarGrid from "../components/CalendarGrid"
 import ScheduleList from "../components/ScheduleList"
 import BottomNav from "../components/BottomNav"
 import useFinance from "../state/finance"
+import getItemsForMonth from "../utils/getItemsForMonth" // ✅ NEW
 
 export default function Dashboard() {
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
   const [isAddGroupOpen, setIsAddGroupOpen] = useState(false)
+  const [selectedDate, setSelectedDate] = useState(new Date())
 
-  const thisMonthGroup = scheduleGroups?.[0] || { title: '', items: [] }
+  // ✅ Change visible month
+  function handleMonthChange(offset) {
+    const newDate = new Date(selectedDate)
+    newDate.setMonth(selectedDate.getMonth() + offset)
+    setSelectedDate(newDate)
+  }
 
-  const currentMonthItems = thisMonthGroup.items.filter((item) => {
-    const date = new Date(item.date)
-    const now = new Date()
-    return (
-      date.getMonth() === now.getMonth() &&
-      date.getFullYear() === now.getFullYear()
-    )
-  })
+  // ✅ Use shared filtering logic (replaces manual loop)
+  const currentMonthItems = getItemsForMonth(scheduleGroups, selectedDate)
 
   const income = currentMonthItems
     .filter((item) => item.amount > 0)
@@ -32,13 +33,22 @@ export default function Dashboard() {
     .reduce((sum, item) => sum + item.amount, 0)
 
   const totalBalance = income + expenses
-
-  const calendarData = []
+  const calendarData = [] // optional, for future enhancement
 
   return (
     <div className="min-h-screen bg-neutral-900 text-white relative pb-[120px] px-4 flex flex-col gap-6">
       <Header />
 
+      {/* Month Selector */}
+      <div className="flex justify-between items-center text-white px-2 mt-2">
+        <button onClick={() => handleMonthChange(-1)} className="text-2xl">←</button>
+        <span className="text-lg font-semibold">
+          {selectedDate.toLocaleString("default", { month: "long", year: "numeric" })}
+        </span>
+        <button onClick={() => handleMonthChange(1)} className="text-2xl">→</button>
+      </div>
+
+      {/* Summary Cards */}
       <div className="text-center">
         <TotalBalance amount={totalBalance} />
         <div className="flex justify-center gap-4 mt-4 px-4">
@@ -47,14 +57,22 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <CalendarGrid calendarData={calendarData} currentDate={new Date().getDate()} />
+      <CalendarGrid
+        calendarData={calendarData}
+        currentDate={selectedDate.getDate()}
+      />
+
+      {/* Schedule Display */}
       <ScheduleList
         groupIndex={0}
-        title={thisMonthGroup.title}
+        title={`${selectedDate.toLocaleString("default", {
+          month: "long",
+          year: "numeric",
+        })}'s Schedule`}
         items={currentMonthItems}
       />
 
-      {/* ✅ Floating Button */}
+      {/* Floating Add Group Button */}
       <button
         onClick={() => setIsAddGroupOpen(true)}
         className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-yellow-400 text-black font-semibold py-2 px-6 rounded-full shadow-lg z-50"
