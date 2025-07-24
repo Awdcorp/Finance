@@ -137,10 +137,18 @@ export default function ScheduleList({ items = [] }) {
         <AddScheduleModal
           isOpen={true}
           isEditMode={editInfo.itemIndex != null}
-          initialData={
+          defaultValues={
             editInfo.itemIndex != null
               ? scheduleGroups[editInfo.groupIndex].items[editInfo.itemIndex]
-              : null
+              : {
+                  title: "",
+                  amount: 0,
+                  date: "",
+                  icon: "💰",
+                  category: "",
+                  repeat: false,
+                  repeatEndDate: "",
+                }
           }
           groupIndex={editInfo.groupIndex}
           onSave={(itemData) => {

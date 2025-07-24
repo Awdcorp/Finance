@@ -112,7 +112,7 @@ export default function PendingGroupList() {
 
               <button
                 onClick={() => setAddItemGroupIndex(groupIndex)}
-                className="bg-yellow-500 hover:bg-yellow-600 text-black text-sm rounded-md py-2 font-semibold mt-2"
+                className="text-yellow-400 hover:text-yellow-300 text-sm mt-2"
               >
                 + Add Item
               </button>
