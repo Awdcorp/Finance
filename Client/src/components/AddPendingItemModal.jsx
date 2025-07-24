@@ -1,5 +1,5 @@
 // src/components/AddPendingItemModal.jsx
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Dialog } from "@headlessui/react"
 import useFinance from "../state/finance"
 import toast from "react-hot-toast"
@@ -7,11 +7,24 @@ import toast from "react-hot-toast"
 export default function AddPendingItemModal({
   isOpen,
   onClose,
-  groupIndex = 0 // default to first group (General Drafts)
+  groupIndex = 0,
+  defaultValues = null,
+  isEditMode = false,
+  onSave = null
 }) {
   const [title, setTitle] = useState("")
   const [amount, setAmount] = useState("")
-  const addPendingItemToGroup  = useFinance((state) => state.addPendingItemToGroup )
+  const addPendingItemToGroup = useFinance((state) => state.addPendingItemToGroup)
+
+  useEffect(() => {
+    if (defaultValues) {
+      setTitle(defaultValues.title || "")
+      setAmount(defaultValues.amount?.toString() || "")
+    } else {
+      setTitle("")
+      setAmount("")
+    }
+  }, [defaultValues])
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -26,15 +39,20 @@ export default function AddPendingItemModal({
       return
     }
 
-    addPendingItemToGroup (groupIndex, {
+    const item = {
       title: title.trim(),
       amount: parsedAmount,
       date: new Date().toISOString()
-    })
+    }
 
-    toast.success("Item added")
-    setTitle("")
-    setAmount("")
+    if (isEditMode && onSave) {
+      onSave(item)
+      toast.success("Item updated")
+    } else {
+      addPendingItemToGroup(groupIndex, item)
+      toast.success("Item added")
+    }
+
     onClose()
   }
 
@@ -43,7 +61,9 @@ export default function AddPendingItemModal({
       <div className="fixed inset-0 bg-black/40" />
       <div className="fixed inset-0 flex items-center justify-center">
         <Dialog.Panel className="bg-neutral-800 p-6 rounded-xl text-white w-72">
-          <Dialog.Title className="text-lg font-semibold mb-4">Add Pending Item</Dialog.Title>
+          <Dialog.Title className="text-lg font-semibold mb-4">
+            {isEditMode ? "Edit Pending Item" : "Add Pending Item"}
+          </Dialog.Title>
 
           <form onSubmit={handleSubmit} className="space-y-3">
             <input
@@ -71,7 +91,7 @@ export default function AddPendingItemModal({
                 type="submit"
                 className="text-sm px-3 py-1 bg-yellow-500 text-black font-semibold rounded"
               >
-                Add
+                {isEditMode ? "Save" : "Add"}
               </button>
             </div>
           </form>

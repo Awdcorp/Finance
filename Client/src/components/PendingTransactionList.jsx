@@ -3,6 +3,7 @@ import useFinance from "../state/finance"
 import AddScheduleModal from "./AddScheduleModal"
 import AddPendingGroupModal from "./AddPendingGroupModal"
 import AddPendingItemModal from "./AddPendingItemModal"
+import { Dialog } from "@headlessui/react"
 
 export default function PendingGroupList() {
   const pendingGroups = useFinance((state) => state.pendingGroups)
@@ -14,6 +15,8 @@ export default function PendingGroupList() {
   const [menuOpenIndex, setMenuOpenIndex] = useState(null)
   const [editGroupInfo, setEditGroupInfo] = useState(null)
   const [addItemGroupIndex, setAddItemGroupIndex] = useState(null)
+  const [selectedItem, setSelectedItem] = useState(null)
+  const [actionChoice, setActionChoice] = useState(null)
 
   return (
     <div className="px-4 mt-4 relative">
@@ -80,7 +83,7 @@ export default function PendingGroupList() {
                   <div
                     key={i}
                     className="py-3 flex justify-between items-start text-sm cursor-pointer border-b border-neutral-700 last:border-b-0"
-                    onClick={() => setEditInfo({ groupIndex, itemIndex: i })}
+                    onClick={() => setSelectedItem({ groupIndex, itemIndex: i })}
                   >
                     {/* Left */}
                     <div className="flex gap-3 items-start">
@@ -118,24 +121,80 @@ export default function PendingGroupList() {
         )
       })}
 
+      {/* Choose Action Popup */}
+      {selectedItem && (
+        <Dialog open={true} onClose={() => setSelectedItem(null)} className="relative z-50">
+          <div className="fixed inset-0 bg-black/40" />
+          <div className="fixed inset-0 flex items-center justify-center">
+            <Dialog.Panel className="bg-neutral-800 p-6 rounded-xl text-white w-72">
+              <Dialog.Title className="text-lg font-semibold mb-4">What do you want to do?</Dialog.Title>
+              <div className="space-y-3">
+                <button
+                  className="w-full bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-left"
+                  onClick={() => {
+                    setActionChoice("edit")
+                    setEditInfo(selectedItem)
+                    setSelectedItem(null)
+                  }}
+                >
+                  ✏️ Edit this draft
+                </button>
+                <button
+                  className="w-full bg-yellow-600 hover:bg-yellow-500 px-4 py-2 rounded text-left text-black font-semibold"
+                  onClick={() => {
+                    setActionChoice("schedule")
+                    setEditInfo(selectedItem)
+                    setSelectedItem(null)
+                  }}
+                >
+                  ✅ Schedule this
+                </button>
+                <button
+                  className="w-full text-sm text-gray-400 underline mt-2"
+                  onClick={() => setSelectedItem(null)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </Dialog.Panel>
+          </div>
+        </Dialog>
+      )}
+
       {/* Add/Edit Item Modal */}
-      {editInfo && (
+      {editInfo && actionChoice === "edit" && (
+        <AddPendingItemModal
+          isOpen={true}
+          isEditMode={true}
+          defaultValues={pendingGroups[editInfo.groupIndex].items[editInfo.itemIndex]}
+          onSave={(updatedItem) => {
+            const { editPendingItemInGroup } = useFinance.getState()
+            editPendingItemInGroup(editInfo.groupIndex, editInfo.itemIndex, updatedItem)
+            setEditInfo(null)
+            setActionChoice(null)
+          }}
+          onClose={() => {
+            setEditInfo(null)
+            setActionChoice(null)
+          }}
+        />
+      )}
+
+      {editInfo && actionChoice === "schedule" && (
         <AddScheduleModal
           isOpen={true}
-          isEditMode={false}
-          defaultValues={
-            pendingGroups[editInfo.groupIndex].items[editInfo.itemIndex]
-          }
-          groupIndex={0}
-          onSave={(itemData) => {
-            useFinance.getState().addItemToGroup(0, {
-              ...itemData,
-              date: itemData.date || new Date().toISOString().split("T")[0],
-            })
+          defaultValues={pendingGroups[editInfo.groupIndex].items[editInfo.itemIndex]}
+          onSave={(scheduledItem) => {
+            const { addItemToGroup, removePendingItemFromGroup } = useFinance.getState()
+            addItemToGroup(0, scheduledItem)
             removePendingItemFromGroup(editInfo.groupIndex, editInfo.itemIndex)
             setEditInfo(null)
+            setActionChoice(null)
           }}
-          onClose={() => setEditInfo(null)}
+          onClose={() => {
+            setEditInfo(null)
+            setActionChoice(null)
+          }}
         />
       )}
 
