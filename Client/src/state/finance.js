@@ -78,34 +78,55 @@ const useFinance = create((set) => ({
       },
     })),
 
-  // ✅ New: Pending Transactions (Unassigned Payments)
-    pendingItems: [],
+    // ✅ New: Grouped Pending Transactions (e.g. "Loans", "Future Bills")
+    pendingGroups: [
+    {
+        title: "General Drafts",
+        items: [],
+    },
+    ],
 
-    addPendingItem: (item) =>
+    addPendingGroup: (group) =>
     set((state) => ({
-        pendingItems: [
-        ...state.pendingItems,
-        {
-            title: item.title || "",
-            amount: item.amount || 0,
-            date: null,
-            notes: item.notes || "",
-            icon: item.icon || null,
-            isDraft: true,
-        },
-        ],
+        pendingGroups: [...state.pendingGroups, group],
     })),
 
-    removePendingItem: (index) =>
-    set((state) => ({
-        pendingItems: state.pendingItems.filter((_, i) => i !== index),
-    })),
-
-    editPendingItem: (index, updated) =>
+    renamePendingGroup: (index, newTitle) =>
     set((state) => {
-        const items = [...state.pendingItems]
-        items[index] = { ...items[index], ...updated }
-        return { pendingItems: items }
+        const updated = [...state.pendingGroups]
+        updated[index].title = newTitle
+        return { pendingGroups: updated }
+    }),
+
+    deletePendingGroup: (index) =>
+    set((state) => {
+        const updated = [...state.pendingGroups]
+        updated.splice(index, 1)
+        return { pendingGroups: updated }
+    }),
+
+    addPendingItemToGroup: (groupIndex, item) =>
+    set((state) => {
+        const groups = [...state.pendingGroups]
+        groups[groupIndex].items.push(item)
+        return { pendingGroups: groups }
+    }),
+
+    editPendingItemInGroup: (groupIndex, itemIndex, updatedItem) =>
+    set((state) => {
+        const groups = [...state.pendingGroups]
+        groups[groupIndex].items[itemIndex] = {
+        ...groups[groupIndex].items[itemIndex],
+        ...updatedItem,
+        }
+        return { pendingGroups: groups }
+    }),
+
+    removePendingItemFromGroup: (groupIndex, itemIndex) =>
+    set((state) => {
+        const groups = [...state.pendingGroups]
+        groups[groupIndex].items.splice(itemIndex, 1)
+        return { pendingGroups: groups }
     }),
 }))
 

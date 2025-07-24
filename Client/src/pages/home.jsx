@@ -10,11 +10,13 @@ import useFinance from "../state/finance"
 import getItemsForMonth from "../utils/getItemsForMonth" // ✅ NEW
 import getProjectedBalance from "../utils/getProjectedBalance"
 import PendingTransactionList from "../components/PendingTransactionList"
+import AddPendingGroupModal from "../components/AddPendingGroupModal"
 
 export default function Dashboard() {
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
   const [isAddGroupOpen, setIsAddGroupOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState(new Date())
+  const [showAddPendingGroup, setShowAddPendingGroup] = useState(false)
 
   // ✅ Change visible month
   function handleMonthChange(offset) {
@@ -98,6 +100,20 @@ scheduleGroups.forEach((g, i) => {
       </button>
 
       <AddGroupModal isOpen={isAddGroupOpen} onClose={() => setIsAddGroupOpen(false)} />
+      
+      {/* Floating Button */}
+      <button
+        onClick={() => setShowAddPendingGroup(true)}
+        className="fixed bottom-24 right-4 z-50 bg-yellow-500 text-black px-4 py-2 rounded-full font-semibold shadow-md"
+      >
+        + Add Draft Group
+      </button>
+
+      {/* Modal */}
+      <AddPendingGroupModal
+        isOpen={showAddPendingGroup}
+        onClose={() => setShowAddPendingGroup(false)}
+      />
       <PendingTransactionList />
       <BottomNav />
     </div>
