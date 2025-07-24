@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import useFinance from "../state/finance"
 import AddScheduleModal from "./AddScheduleModal"
 import AddGroupModal from "./AddGroupModal"
@@ -14,6 +14,21 @@ export default function ScheduleList({ items = [] }) {
   const [editInfo, setEditInfo] = useState(null)
   const [menuOpenIndex, setMenuOpenIndex] = useState(null)
   const [editGroupInfo, setEditGroupInfo] = useState(null)
+
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpenIndex(null)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [])
 
   return (
     <div className="px-4 mt-4 relative">
@@ -44,7 +59,10 @@ export default function ScheduleList({ items = [] }) {
                 </button>
 
                 {menuOpenIndex === groupIndex && (
-                  <div className="absolute right-0 mt-2 w-40 bg-neutral-800 shadow-lg rounded-lg z-10 border border-neutral-700">
+                  <div
+                    ref={menuRef}
+                    className="absolute right-0 mt-2 w-40 bg-neutral-800 shadow-lg rounded-lg z-10 border border-neutral-700"
+                  >
                     <button
                       className="block w-full text-left px-4 py-2 hover:bg-neutral-700 text-sm text-yellow-400"
                       onClick={() => {
@@ -81,7 +99,7 @@ export default function ScheduleList({ items = [] }) {
                   const realItemIndex = scheduleGroups[groupIndex].items.findIndex((stored) => {
                     const original = item.originalDate || item.date
                     return stored.date === original
-                    });
+                  })
 
                   return (
                     <div
@@ -90,7 +108,7 @@ export default function ScheduleList({ items = [] }) {
                       onClick={() => {
                         // Only allow editing if item is original, not generated
                         if (realItemIndex !== -1) {
-                          setEditInfo({ groupIndex, itemIndex: realItemIndex });
+                          setEditInfo({ groupIndex, itemIndex: realItemIndex })
                         }
                       }}
                     >
@@ -116,7 +134,7 @@ export default function ScheduleList({ items = [] }) {
                         </div>
                       </div>
                     </div>
-                  );
+                  )
                 })
               )}
 
@@ -129,7 +147,7 @@ export default function ScheduleList({ items = [] }) {
               </button>
             </div>
           </div>
-        );
+        )
       })}
 
       {/* Add/Edit Item Modal */}
@@ -185,5 +203,5 @@ export default function ScheduleList({ items = [] }) {
         />
       )}
     </div>
-  );
+  )
 }

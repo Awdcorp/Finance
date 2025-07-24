@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import useFinance from "../state/finance"
 import AddScheduleModal from "./AddScheduleModal"
 import AddPendingGroupModal from "./AddPendingGroupModal"
@@ -17,6 +17,21 @@ export default function PendingGroupList() {
   const [addItemGroupIndex, setAddItemGroupIndex] = useState(null)
   const [selectedItem, setSelectedItem] = useState(null)
   const [actionChoice, setActionChoice] = useState(null)
+
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpenIndex(null)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [])
 
   return (
     <div className="px-4 mt-4 relative">
@@ -46,7 +61,10 @@ export default function PendingGroupList() {
                 </button>
 
                 {menuOpenIndex === groupIndex && (
-                  <div className="absolute right-0 mt-2 w-40 bg-neutral-800 shadow-lg rounded-lg z-10 border border-neutral-700">
+                  <div
+                    ref={menuRef}
+                    className="absolute right-0 mt-2 w-40 bg-neutral-800 shadow-lg rounded-lg z-10 border border-neutral-700"
+                  >
                     <button
                       className="block w-full text-left px-4 py-2 hover:bg-neutral-700 text-sm text-yellow-400"
                       onClick={() => {
@@ -76,7 +94,7 @@ export default function PendingGroupList() {
             <div className="bg-neutral-800 rounded-xl p-4 flex flex-col gap-3">
               {groupItems.length === 0 ? (
                 <div className="text-center text-gray-500 text-sm italic">
-                  No items in this group yet
+                  No pending items in this group yet
                 </div>
               ) : (
                 groupItems.map((item, i) => (

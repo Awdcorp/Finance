@@ -11,6 +11,7 @@ import getItemsForMonth from "../utils/getItemsForMonth" // ✅ NEW
 import getProjectedBalance from "../utils/getProjectedBalance"
 import PendingTransactionList from "../components/PendingTransactionList"
 import AddPendingGroupModal from "../components/AddPendingGroupModal"
+import PendingSummaryCard from "../components/PendingSummaryCard"
 
 export default function Dashboard() {
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
@@ -91,20 +92,26 @@ scheduleGroups.forEach((g, i) => {
         items={currentMonthItems}
       />
 
-      {/* Floating Add Group Button */}
+            {/* Floating Add Group Button */}
       <button
         onClick={() => setIsAddGroupOpen(true)}
-        className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-yellow-400 text-black font-semibold py-2 px-6 rounded-full shadow-lg z-50"
+        className="text-yellow-400 hover:text-yellow-300 text-sm pb-4"
       >
         + Add New Group
       </button>
 
       <AddGroupModal isOpen={isAddGroupOpen} onClose={() => setIsAddGroupOpen(false)} />
       
+      <div className="px-4">
+        <PendingSummaryCard />
+      </div>
+
+      <PendingTransactionList />
+
       {/* Floating Button */}
       <button
         onClick={() => setShowAddPendingGroup(true)}
-        className="fixed bottom-24 right-4 z-50 bg-yellow-500 text-black px-4 py-2 rounded-full font-semibold shadow-md"
+        className="text-yellow-400 hover:text-yellow-300 text-sm pb-4"
       >
         + Add Draft Group
       </button>
@@ -114,7 +121,7 @@ scheduleGroups.forEach((g, i) => {
         isOpen={showAddPendingGroup}
         onClose={() => setShowAddPendingGroup(false)}
       />
-      <PendingTransactionList />
+
       <BottomNav />
     </div>
   )
