@@ -1,18 +1,18 @@
-// src/components/TotalBalance.jsx
 import React from "react"
 import useFinance from "../state/finance"
+import getItemsForMonth from "../utils/getItemsForMonth"
 
-export default function TotalBalance() {
+export default function TotalBalance({ selectedDate }) {
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
 
-  // Flatten all items from all groups
-  const allItems = scheduleGroups?.flatMap((group) => group.items) || []
+  // ✅ Filter only for current visible month
+  const items = getItemsForMonth(scheduleGroups, selectedDate)
 
-  const income = allItems
+  const income = items
     .filter((item) => item.amount > 0)
     .reduce((acc, item) => acc + item.amount, 0)
 
-  const expenses = allItems
+  const expenses = items
     .filter((item) => item.amount < 0)
     .reduce((acc, item) => acc + item.amount, 0)
 

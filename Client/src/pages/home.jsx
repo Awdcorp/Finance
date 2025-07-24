@@ -8,6 +8,7 @@ import ScheduleList from "../components/ScheduleList"
 import BottomNav from "../components/BottomNav"
 import useFinance from "../state/finance"
 import getItemsForMonth from "../utils/getItemsForMonth" // ✅ NEW
+import getProjectedBalance from "../utils/getProjectedBalance"
 
 export default function Dashboard() {
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
@@ -34,6 +35,18 @@ export default function Dashboard() {
 
   const totalBalance = income + expenses
   const calendarData = [] // optional, for future enhancement
+  const projectedBalance = getProjectedBalance(scheduleGroups, selectedDate);
+console.log("DEBUG - Projected Balance Inputs:");
+console.log("Selected:", selectedDate);
+console.log("ScheduleGroups:", scheduleGroups);
+
+scheduleGroups.forEach((g, i) => {
+  console.log(`Group ${i}: ${g.title}`);
+  g.items.forEach((item) =>
+    console.log(`${item.title} - ${item.amount} € - ${item.date}`)
+  );
+});
+
 
   return (
     <div className="min-h-screen bg-neutral-900 text-white relative pb-[120px] px-4 flex flex-col gap-6">
@@ -50,7 +63,10 @@ export default function Dashboard() {
 
       {/* Summary Cards */}
       <div className="text-center">
-        <TotalBalance amount={totalBalance} />
+        <TotalBalance amount={totalBalance} selectedDate={selectedDate} />
+        <div className="text-center text-sm text-yellow-300 mt-1">
+          Projected Balance till this month: {projectedBalance.toFixed(2)} €
+        </div>
         <div className="flex justify-center gap-4 mt-4 px-4">
           <BalanceCard label="Expenses" amount={Math.abs(expenses)} type="expense" />
           <BalanceCard label="Income" amount={income} type="income" />
