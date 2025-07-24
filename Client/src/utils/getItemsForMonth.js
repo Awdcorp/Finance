@@ -20,20 +20,34 @@ export default function getItemsForMonth(scheduleGroups, selectedDate) {
           (itemDate.getFullYear() === selectedDate.getFullYear() &&
             itemDate.getMonth() <= selectedDate.getMonth());
 
-        if (isBeforeOrSameMonth) {
-          // Create a repeated item on the same day in selected month
+        // ✅ Check if this month is within the repeat end date
+        let isWithinRepeatEnd = true;
+        if (item.repeatEndDate) {
+          const endDate = new Date(item.repeatEndDate);
+          const isAfterEndMonth =
+            selectedDate.getFullYear() > endDate.getFullYear() ||
+            (selectedDate.getFullYear() === endDate.getFullYear() &&
+              selectedDate.getMonth() > endDate.getMonth());
+
+          if (isAfterEndMonth) {
+            isWithinRepeatEnd = false;
+          }
+        }
+
+        if (isBeforeOrSameMonth && isWithinRepeatEnd) {
           const repeatedDate = new Date(
             selectedDate.getFullYear(),
             selectedDate.getMonth(),
             itemDate.getDate()
           );
 
-          // Skip invalid dates like Feb 30 or Apr 31
+          // Skip invalid dates like Feb 30
           if (repeatedDate.getMonth() === selectedDate.getMonth()) {
             currentMonthItems.push({
               ...item,
               date: repeatedDate.toISOString().slice(0, 10),
               groupIndex,
+              originalDate: item.date,
             });
           }
         }

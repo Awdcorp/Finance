@@ -19,6 +19,7 @@ export default function AddScheduleModal({
   const [category, setCategory] = useState('')
   const [icon, setIcon] = useState('')
   const [repeat, setRepeat] = useState(true) // ✅ renamed from isRecurring
+  const [repeatEndDate, setRepeatEndDate] = useState('')
 
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
   const groupTitle = scheduleGroups[groupIndex]?.title || 'Untitled'
@@ -32,6 +33,7 @@ export default function AddScheduleModal({
       setCategory(initialData.category || '')
       setIcon(initialData.icon || '')
       setRepeat(initialData.repeat || false) // ✅ use correct field
+      setRepeatEndDate(initialData.repeatEndDate || '')
     } else {
       setTitle('')
       setAmount('')
@@ -39,6 +41,7 @@ export default function AddScheduleModal({
       setCategory('')
       setIcon('')
       setRepeat(true)
+      setRepeatEndDate('')
     }
   }, [isOpen, isEditMode, initialData])
 
@@ -57,6 +60,7 @@ export default function AddScheduleModal({
       icon: icon || '📅',
       category,
       repeat, // ✅ this is what Dashboard expects
+      repeatEndDate: repeat ? repeatEndDate : '',
     }
 
     if (isEditMode && onSave) {
@@ -158,6 +162,17 @@ export default function AddScheduleModal({
               <label>Repeat every month</label>
             </div>
 
+            {repeat && (
+            <div>
+                <label className="block mb-1">Repeat Until (optional)</label>
+                <input
+                type="date"
+                value={repeatEndDate}
+                onChange={(e) => setRepeatEndDate(e.target.value)}
+                className="w-full p-2 bg-zinc-800 rounded-md border border-zinc-600"
+                />
+            </div>
+            )}
             <button
               type="submit"
               className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-semibold py-2 rounded-md"
