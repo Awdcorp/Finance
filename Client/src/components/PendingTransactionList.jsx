@@ -140,17 +140,20 @@ export default function PendingGroupList() {
                   ✏️ Edit this draft
                 </button>
                 <button
-                  className="w-full bg-yellow-600 hover:bg-yellow-500 px-4 py-2 rounded text-left text-black font-semibold"
+                  className="w-full bg-red-600 hover:bg-red-500 px-4 py-2 rounded text-left text-white font-semibold"
                   onClick={() => {
-                    setActionChoice("schedule")
-                    setEditInfo(selectedItem)
-                    setSelectedItem(null)
+                    const { groupIndex, itemIndex } = selectedItem
+                    if (confirm("Are you sure you want to delete this draft?")) {
+                      removePendingItemFromGroup(groupIndex, itemIndex)
+                      setSelectedItem(null)
+                    }
                   }}
                 >
-                  ✅ Schedule this
+                  🗑️ Delete this draft
                 </button>
+
                 <button
-                  className="w-full text-sm text-gray-400 underline mt-2"
+                  className="w-full text-sm text-gray-400 underline mt-1"
                   onClick={() => setSelectedItem(null)}
                 >
                   Cancel
