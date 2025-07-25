@@ -98,7 +98,12 @@ export default function ScheduleList({ items = [] }) {
                 groupItems.map((item, i) => {
                   const realItemIndex = scheduleGroups[groupIndex].items.findIndex((stored) => {
                     const original = item.originalDate || item.date
-                    return stored.date === original
+                    return (
+                      stored.title === item.title &&
+                      stored.amount === item.amount &&
+                      stored.date === original &&
+                      stored.icon === item.icon
+                    )
                   })
 
                   return (
