@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from "react"
 import useFinance from "../state/finance"
 import AddScheduleModal from "./AddScheduleModal"
-import AddGroupModal from "./AddGroupModal"
+import TextInputModal from "./TextInputModal"
+import ConfirmDialog from "./ConfirmDialog"
+import toast from "react-hot-toast";
 
 export default function ScheduleList({ items = [] }) {
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
@@ -14,6 +16,7 @@ export default function ScheduleList({ items = [] }) {
   const [editInfo, setEditInfo] = useState(null)
   const [menuOpenIndex, setMenuOpenIndex] = useState(null)
   const [editGroupInfo, setEditGroupInfo] = useState(null)
+  const [deleteGroupIndex, setDeleteGroupIndex] = useState(null)
 
   const menuRef = useRef(null)
 
@@ -33,7 +36,6 @@ export default function ScheduleList({ items = [] }) {
   return (
     <div className="px-4 mt-4 relative">
       {scheduleGroups.map((group, groupIndex) => {
-        // Show both real + repeated items by matching groupIndex
         const groupItems = items.filter((item) => item.groupIndex === groupIndex)
         const totalAmount = groupItems.reduce((acc, item) => acc + item.amount, 0)
 
@@ -75,10 +77,8 @@ export default function ScheduleList({ items = [] }) {
                     <button
                       className="block w-full text-left px-4 py-2 hover:bg-neutral-700 text-sm text-red-400"
                       onClick={() => {
-                        if (confirm("Are you sure you want to delete this group?")) {
-                          deleteGroup(groupIndex)
-                          setMenuOpenIndex(null)
-                        }
+                        setDeleteGroupIndex(groupIndex)
+                        setMenuOpenIndex(null)
                       }}
                     >
                       Delete
@@ -111,21 +111,17 @@ export default function ScheduleList({ items = [] }) {
                       key={i}
                       className="py-3 flex justify-between items-start text-sm cursor-pointer border-b border-neutral-700 last:border-b-0"
                       onClick={() => {
-                        // Only allow editing if item is original, not generated
                         if (realItemIndex !== -1) {
                           setEditInfo({ groupIndex, itemIndex: realItemIndex })
                         }
                       }}
                     >
-                      {/* Left */}
                       <div className="flex gap-3 items-start">
                         <span className="text-xl">{item.icon}</span>
                         <div className="text-white">
                           <div className="font-medium">{item.title}</div>
                         </div>
                       </div>
-
-                      {/* Right */}
                       <div className="text-right space-y-1">
                         <div className="text-xs text-gray-400">{item.date}</div>
                         <div
@@ -177,8 +173,10 @@ export default function ScheduleList({ items = [] }) {
           onSave={(itemData) => {
             if (editInfo.itemIndex != null) {
               editItemInGroup(editInfo.groupIndex, editInfo.itemIndex, itemData)
+              toast.success("Item updated")
             } else {
               addItemToGroup(editInfo.groupIndex, itemData)
+              toast.success("Item added")
             }
             setEditInfo(null)
           }}
@@ -186,6 +184,7 @@ export default function ScheduleList({ items = [] }) {
             editInfo.itemIndex != null
               ? () => {
                   deleteItemFromGroup(editInfo.groupIndex, editInfo.itemIndex)
+                  toast.success("Item deleted")
                   setEditInfo(null)
                 }
               : undefined
@@ -194,19 +193,33 @@ export default function ScheduleList({ items = [] }) {
         />
       )}
 
-      {/* Rename Group Modal */}
-      {editGroupInfo && (
-        <AddGroupModal
-          isOpen={true}
-          isEditMode={true}
-          initialTitle={editGroupInfo.title}
-          onSaveCustom={(newTitle) => {
-            renameGroup(editGroupInfo.index, newTitle)
-            setEditGroupInfo(null)
-          }}
-          onClose={() => setEditGroupInfo(null)}
-        />
-      )}
+      {/* Rename Group Modal using shared TextInputModal */}
+      <TextInputModal
+        isOpen={!!editGroupInfo}
+        title="Edit Group Title"
+        initialValue={editGroupInfo?.title || ""}
+        confirmLabel="Save"
+        onConfirm={(newTitle) => {
+          renameGroup(editGroupInfo.index, newTitle)
+          toast.success("Group renamed")
+          setEditGroupInfo(null)
+        }}
+        validate={(val) => val.trim() !== ""}
+        onClose={() => setEditGroupInfo(null)}
+      />
+      <ConfirmDialog
+        isOpen={deleteGroupIndex !== null}
+        title="Delete this group?"
+        description="This will permanently delete the group and its items."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          deleteGroup(deleteGroupIndex)
+          toast.success("Group deleted")
+          setDeleteGroupIndex(null)
+        }}
+        onCancel={() => setDeleteGroupIndex(null)}
+      />
     </div>
   )
 }

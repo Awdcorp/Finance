@@ -1,53 +1,37 @@
 // ✅ App.jsx
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Dashboard from './pages/home';
 import Stats from './pages/stats';
 import Profile from './pages/profile';
 import { Toaster } from 'react-hot-toast';
-import { auth, login } from './firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import useAuth from './auth/useAuth'; // ✅ New custom hook
+import LoginScreen from './components/LoginScreen'; // ✅ New login component
+import PrivateRoute from './components/PrivateRoute'; // ✅ Optional secure route
 import './App.css';
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  // Monitor login state
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
+  const { user, loading } = useAuth();
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading...</div>;
-  }
-
-  // Show login screen if not logged in
-  if (!user) {
     return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center">
-        <h1 className="text-2xl mb-4">Welcome to Finance Tracker</h1>
-        <button
-          onClick={login}
-          className="bg-yellow-400 text-black font-semibold px-6 py-3 rounded-lg hover:bg-yellow-300"
-        >
-          Sign in with Google
-        </button>
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+        <div className="animate-pulse text-xl font-semibold">Loading ...</div>
       </div>
     );
   }
 
+  if (!user) {
+    return <LoginScreen />;
+  }
+
   return (
     <Router>
-      <div className="min-h-screen bg-black text-white">
+      <div className="min-h-screen">
         <Routes>
           <Route path="/" element={<Dashboard user={user} />} />
-          <Route path="/stats" element={<Stats user={user} />} />
-          <Route path="/profile" element={<Profile user={user} />} />
+          <Route path="/stats" element={<PrivateRoute user={user}><Stats user={user} /></PrivateRoute>} />
+          <Route path="/profile" element={<PrivateRoute user={user}><Profile user={user} /></PrivateRoute>} />
         </Routes>
         <Toaster position="top-right" />
       </div>

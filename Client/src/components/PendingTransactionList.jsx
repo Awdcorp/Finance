@@ -1,9 +1,12 @@
 import React, { useState, useRef, useEffect } from "react"
 import useFinance from "../state/finance"
 import AddScheduleModal from "./AddScheduleModal"
-import AddPendingGroupModal from "./AddPendingGroupModal"
+import TextInputModal from "./TextInputModal"
+import ConfirmDialog from "./ConfirmDialog"
 import AddPendingItemModal from "./AddPendingItemModal"
 import { Dialog } from "@headlessui/react"
+import { Pencil, Trash2 } from "lucide-react"
+import toast from "react-hot-toast";
 
 export default function PendingGroupList() {
   const pendingGroups = useFinance((state) => state.pendingGroups)
@@ -17,6 +20,8 @@ export default function PendingGroupList() {
   const [addItemGroupIndex, setAddItemGroupIndex] = useState(null)
   const [selectedItem, setSelectedItem] = useState(null)
   const [actionChoice, setActionChoice] = useState(null)
+  const [deleteGroupIndex, setDeleteGroupIndex] = useState(null)
+  const [deleteDraftInfo, setDeleteDraftInfo] = useState(null)
 
   const menuRef = useRef(null)
 
@@ -77,10 +82,8 @@ export default function PendingGroupList() {
                     <button
                       className="block w-full text-left px-4 py-2 hover:bg-neutral-700 text-sm text-red-400"
                       onClick={() => {
-                        if (confirm("Are you sure you want to delete this group?")) {
-                          deletePendingGroup(groupIndex)
-                          setMenuOpenIndex(null)
-                        }
+                        setDeleteGroupIndex(groupIndex)
+                        setMenuOpenIndex(null)
                       }}
                     >
                       Delete
@@ -145,29 +148,31 @@ export default function PendingGroupList() {
           <div className="fixed inset-0 bg-black/40" />
           <div className="fixed inset-0 flex items-center justify-center">
             <Dialog.Panel className="bg-neutral-800 p-6 rounded-xl text-white w-72">
-              <Dialog.Title className="text-lg font-semibold mb-4">What do you want to do?</Dialog.Title>
+              <Dialog.Title className="text-lg font-semibold mb-4">
+                What do you want to do?
+              </Dialog.Title>
               <div className="space-y-3">
                 <button
-                  className="w-full bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-left"
+                  className="w-full flex items-center gap-2 bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-left"
                   onClick={() => {
                     setActionChoice("edit")
                     setEditInfo(selectedItem)
                     setSelectedItem(null)
                   }}
                 >
-                  ✏️ Edit this draft
+                  <Pencil size={16} />
+                  <span>Edit this draft</span>
                 </button>
+
                 <button
-                  className="w-full bg-red-600 hover:bg-red-500 px-4 py-2 rounded text-left text-white font-semibold"
+                  className="w-full flex items-center gap-2 bg-red-600 hover:bg-red-500 px-4 py-2 rounded text-left text-white font-semibold"
                   onClick={() => {
-                    const { groupIndex, itemIndex } = selectedItem
-                    if (confirm("Are you sure you want to delete this draft?")) {
-                      removePendingItemFromGroup(groupIndex, itemIndex)
-                      setSelectedItem(null)
-                    }
+                    setDeleteDraftInfo(selectedItem)
+                    setSelectedItem(null)
                   }}
                 >
-                  🗑️ Delete this draft
+                  <Trash2 size={16} />
+                  <span>Delete this draft</span>
                 </button>
 
                 <button
@@ -181,6 +186,7 @@ export default function PendingGroupList() {
           </div>
         </Dialog>
       )}
+
 
       {/* Add/Edit Item Modal */}
       {editInfo && actionChoice === "edit" && (
@@ -226,6 +232,7 @@ export default function PendingGroupList() {
           onClose={() => setAddItemGroupIndex(null)}
           onSave={(newItem) => {
             useFinance.getState().addPendingItemToGroup(addItemGroupIndex, newItem)
+            toast.success("Item added")
             setAddItemGroupIndex(null)
           }}
         />
@@ -233,15 +240,51 @@ export default function PendingGroupList() {
 
       {/* Rename Group Modal */}
       {editGroupInfo && (
-        <AddPendingGroupModal
-          isOpen={true}
-          isEditMode={true}
-          initialTitle={editGroupInfo.title}
-          onSaveCustom={(newTitle) => {
+        <TextInputModal
+          isOpen={!!editGroupInfo}
+          title="Rename Group"
+          initialValue={editGroupInfo?.title || ""}
+          confirmLabel="Save"
+          validate={(val) => val.trim() !== ""}
+          onConfirm={(newTitle) => {
             renamePendingGroup(editGroupInfo.index, newTitle)
+            toast.success("Group renamed")
             setEditGroupInfo(null)
           }}
           onClose={() => setEditGroupInfo(null)}
+        />
+      )}
+
+      {/* Confirm Group Delete */}
+      {typeof deleteGroupIndex === "number" && (
+        <ConfirmDialog
+          isOpen={true}
+          title="Delete this group?"
+          description="All unsaved items in this group will be lost."
+          confirmLabel="Delete"
+          onConfirm={() => {
+            deletePendingGroup(deleteGroupIndex)
+            toast.success("Group deleted")
+            setDeleteGroupIndex(null)
+          }}
+          onCancel={() => setDeleteGroupIndex(null)}
+        />
+      )}
+
+      {/* Confirm Draft Delete */}
+      {deleteDraftInfo && (
+        <ConfirmDialog
+          isOpen={true}
+          title="Delete this draft?"
+          description="This will remove the unscheduled transaction permanently."
+          confirmLabel="Delete"
+          onConfirm={() => {
+            const { groupIndex, itemIndex } = deleteDraftInfo
+            removePendingItemFromGroup(groupIndex, itemIndex)
+            toast.success("Item deleted")
+            setDeleteDraftInfo(null)
+          }}
+          onCancel={() => setDeleteDraftInfo(null)}
         />
       )}
     </div>
