@@ -12,17 +12,26 @@ import PendingTransactionList from "../components/PendingTransactionList"
 import AddPendingGroupModal from "../components/AddPendingGroupModal"
 import PendingSummaryCard from "../components/PendingSummaryCard"
 import DashboardSelector from "../components/DashboardSelector"
-import SidebarNav from "../components/SidebarNav" // ✅ NEW SIDEBAR
+import SidebarNav from "../components/SidebarNav"
 
-export default function Dashboard() {
+export default function Dashboard({ user }) { // ✅ Accept user from App.jsx
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
   const currentDashboard = useFinance((state) => state.currentDashboard)
   const syncDashboard = useFinance((state) => state.syncDashboard)
+  const loadUserData = useFinance((state) => state.loadUserData)
 
   const [isAddGroupOpen, setIsAddGroupOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [showAddPendingGroup, setShowAddPendingGroup] = useState(false)
 
+  // ✅ Load user data from Firestore on login
+  useEffect(() => {
+    if (user?.uid) {
+      loadUserData(user.uid)
+    }
+  }, [user])
+
+  // ✅ Sync dashboard when changed
   useEffect(() => {
     syncDashboard()
     setSelectedDate(new Date())
@@ -45,7 +54,6 @@ export default function Dashboard() {
     .reduce((sum, item) => sum + item.amount, 0)
 
   const totalBalance = income + expenses
-  const calendarData = []
   const projectedBalance = getProjectedBalance(scheduleGroups, selectedDate)
 
   return (
@@ -57,7 +65,6 @@ export default function Dashboard() {
       {/* Main Dashboard Area */}
       <div className="flex-1 lg:ml-64 px-4 pt-6 pb-[120px] flex flex-col gap-6">
         
-        {/* Dashboard Switcher */}
         <DashboardSelector />
 
         {/* Month Selector */}
@@ -69,9 +76,9 @@ export default function Dashboard() {
           <button onClick={() => handleMonthChange(1)} className="text-2xl">→</button>
         </div>
 
-        {/* Main Grid */}
+        {/* Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* LEFT SIDE */}
+          {/* LEFT */}
           <div>
             <TotalBalance amount={totalBalance} selectedDate={selectedDate} />
             <div className="text-center lg:text-left text-sm text-yellow-300 mt-1">
@@ -81,10 +88,10 @@ export default function Dashboard() {
               <BalanceCard label="Expenses" amount={Math.abs(expenses)} type="expense" />
               <BalanceCard label="Income" amount={income} type="income" />
             </div>
-            <CalendarGrid calendarData={calendarData} currentDate={selectedDate.getDate()} />
+            <CalendarGrid calendarData={[]} currentDate={selectedDate.getDate()} />
           </div>
 
-          {/* RIGHT SIDE */}
+          {/* RIGHT */}
           <div>
             <ScheduleList
               groupIndex={0}
