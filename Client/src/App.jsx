@@ -1,16 +1,24 @@
-// ✅ App.jsx (core wrapper)
+// ✅ App.jsx
 import React from 'react';
-import Dashboard from './pages/home'; // assuming Dashboard.jsx contains the full UI
-import FloatingAddButton from "./components/FloatingAddButton";
-import { Toaster } from 'react-hot-toast'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Dashboard from './pages/home';         // Dashboard page
+import Stats from './pages/stats';            // ➕ You'll create this
+import Profile from './pages/profile';        // Optional (can be dummy)
+import { Toaster } from 'react-hot-toast';
 import './App.css';
 
 function App() {
   return (
-    <div className="min-h-screen bg-black text-white">
-      <Dashboard />
-      <Toaster position="top-right" />
-    </div>
+    <Router>
+      <div className="min-h-screen bg-black text-white">
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/stats" element={<Stats />} />
+          <Route path="/profile" element={<Profile />} />
+        </Routes>
+        <Toaster position="top-right" />
+      </div>
+    </Router>
   );
 }
 
