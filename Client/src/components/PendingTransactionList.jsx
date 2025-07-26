@@ -5,8 +5,15 @@ import TextInputModal from "./TextInputModal"
 import ConfirmDialog from "./ConfirmDialog"
 import AddPendingItemModal from "./AddPendingItemModal"
 import { Dialog } from "@headlessui/react"
-import { Pencil, Trash2 } from "lucide-react"
-import toast from "react-hot-toast";
+import {
+  Pencil,
+  Trash2,
+  Edit3,
+  MoreVertical,
+  FileClock,
+  CirclePlus,IndianRupee,ReceiptIndianRupee,
+} from "lucide-react"
+import toast from "react-hot-toast"
 
 export default function PendingGroupList() {
   const pendingGroups = useFinance((state) => state.pendingGroups)
@@ -50,9 +57,14 @@ export default function PendingGroupList() {
             <div className="flex justify-between items-center text-sm text-gray-400 mb-2 px-1">
               <div className="flex items-center gap-2">
                 <span className="uppercase">{group.title || "Untitled"}</span>
-                <span className="text-red-400 font-semibold text-xs">
-                  {totalAmount.toFixed(2)} €
-                </span>
+                  <span
+                    className={`font-semibold text-xs inline-flex items-center gap-1 ${
+                      totalAmount < 0 ? "text-red-400" : "text-green-400"
+                    }`}
+                  >
+                    <IndianRupee size={12} />
+                    {totalAmount.toFixed(2)}
+                  </span>
               </div>
 
               <div className="relative">
@@ -60,9 +72,9 @@ export default function PendingGroupList() {
                   onClick={() =>
                     setMenuOpenIndex(menuOpenIndex === groupIndex ? null : groupIndex)
                   }
-                  className="text-gray-400 hover:text-white text-lg px-2"
+                  className="text-gray-400 hover:text-white px-2"
                 >
-                  ⋮
+                  <MoreVertical size={18} />
                 </button>
 
                 {menuOpenIndex === groupIndex && (
@@ -71,21 +83,23 @@ export default function PendingGroupList() {
                     className="absolute right-0 mt-2 w-40 bg-neutral-800 shadow-lg rounded-lg z-10 border border-neutral-700"
                   >
                     <button
-                      className="block w-full text-left px-4 py-2 hover:bg-neutral-700 text-sm text-yellow-400"
+                      className="flex items-center w-full text-left px-4 py-2 hover:bg-neutral-700 text-sm text-yellow-400"
                       onClick={() => {
                         setEditGroupInfo({ index: groupIndex, title: group.title })
                         setMenuOpenIndex(null)
                       }}
                     >
+                      <Edit3 size={14} className="mr-2" />
                       Rename
                     </button>
                     <button
-                      className="block w-full text-left px-4 py-2 hover:bg-neutral-700 text-sm text-red-400"
+                      className="flex items-center w-full text-left px-4 py-2 hover:bg-neutral-700 text-sm text-red-400"
                       onClick={() => {
                         setDeleteGroupIndex(groupIndex)
                         setMenuOpenIndex(null)
                       }}
                     >
+                      <Trash2 size={14} className="mr-2" />
                       Delete
                     </button>
                   </div>
@@ -106,15 +120,19 @@ export default function PendingGroupList() {
                     className="py-3 flex justify-between items-start text-sm cursor-pointer border-b border-neutral-700 last:border-b-0"
                     onClick={() => setSelectedItem({ groupIndex, itemIndex: i })}
                   >
-                    {/* Left */}
                     <div className="flex gap-3 items-start">
-                      <span className="text-xl">{item.icon || "📝"}</span>
+                        <div className="text-xl">
+                          {/* If item.icon is a string (emoji), render it; otherwise use fallback Lucide icon */}
+                          {typeof item.icon === "string" ? (
+                            item.icon
+                          ) : (
+                            <ReceiptIndianRupee size={20} className="text-yellow-400" />
+                          )}
+                        </div>
                       <div className="text-white">
                         <div className="font-medium">{item.title}</div>
                       </div>
                     </div>
-
-                    {/* Right */}
                     <div className="text-right space-y-1">
                       <div className="text-xs text-gray-400">Unscheduled</div>
                       <div
@@ -124,7 +142,8 @@ export default function PendingGroupList() {
                             : "bg-green-500/20 text-green-400"
                         }`}
                       >
-                        {item.amount.toFixed(2)} €
+                         <IndianRupee size={14} className="inline-block mr-1" />
+                        {item.amount.toFixed(2)}
                       </div>
                     </div>
                   </div>
@@ -133,9 +152,10 @@ export default function PendingGroupList() {
 
               <button
                 onClick={() => setAddItemGroupIndex(groupIndex)}
-                className="text-yellow-400 hover:text-yellow-300 text-sm mt-2"
+                className="text-white-400 hover:text-yellow-300 text-sm mt-2 flex items-center gap-2"
               >
-                + Add Item
+                <CirclePlus size={16} />
+                <span>Add Item</span>
               </button>
             </div>
           </div>
@@ -187,7 +207,6 @@ export default function PendingGroupList() {
         </Dialog>
       )}
 
-
       {/* Add/Edit Item Modal */}
       {editInfo && actionChoice === "edit" && (
         <AddPendingItemModal
@@ -225,10 +244,11 @@ export default function PendingGroupList() {
         />
       )}
 
-      {/* Add New Pending Item Popup */}
+      {/* Add New Pending Item Modal */}
       {typeof addItemGroupIndex === "number" && (
         <AddPendingItemModal
           isOpen={true}
+          groupIndex={addItemGroupIndex}
           onClose={() => setAddItemGroupIndex(null)}
           onSave={(newItem) => {
             useFinance.getState().addPendingItemToGroup(addItemGroupIndex, newItem)

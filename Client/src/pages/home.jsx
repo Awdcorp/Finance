@@ -106,7 +106,7 @@ export default function Dashboard({ user }) {
 
             <button
               onClick={() => setIsAddGroupOpen(true)}
-              className="text-yellow-400 hover:text-yellow-300 text-sm pb-4"
+              className="text-blue-400 hover:text-yellow-300 text-sm pb-4"
             >
               + Add New Group
             </button>
@@ -116,7 +116,7 @@ export default function Dashboard({ user }) {
 
             <button
               onClick={() => setShowAddPendingGroup(true)}
-              className="text-yellow-400 hover:text-yellow-300 text-sm pb-4"
+              className="text-blue-400 hover:text-yellow-300 text-sm"
             >
               + Add Draft Group
             </button>
@@ -124,7 +124,7 @@ export default function Dashboard({ user }) {
         </div>
 
         {/* Modals */}
-        <TextInputModal
+          <TextInputModal
           isOpen={isAddGroupOpen}
           title="Add New Block"
           confirmLabel="Add"

@@ -9,7 +9,7 @@ export default function AddPendingItemModal({
   onClose,
   isEditMode = false,
   defaultValues = {},
-  groupIndex = 0,
+  groupIndex,
   itemIndex = 0,
   onSave,
 }) {

@@ -9,6 +9,7 @@ import {
 import useFinance from "../state/finance"
 import TextInputModal from "./TextInputModal"
 import ConfirmDialog from "./ConfirmDialog"
+import toast from 'react-hot-toast'
 
 export default function DashboardSelector() {
   const dashboards = useFinance((state) => state.dashboards)
@@ -53,7 +54,7 @@ export default function DashboardSelector() {
 
   const handleDelete = (name) => {
     if (dashboards.length === 1) {
-      alert("At least one dashboard must remain.")
+      toast.error("At least one dashboard must remain.")
       return
     }
     setPendingDelete(name)
@@ -129,6 +130,7 @@ export default function DashboardSelector() {
           if (renameModal.oldName === currentDashboard) {
             setCurrentDashboard(newName)
           }
+          toast.success(`Dashboard renamed to "${newName}"`)
         }}
         validate={(name) => name.trim() !== ""}
         onClose={() => setRenameModal({ open: false, oldName: "" })}
@@ -142,6 +144,7 @@ export default function DashboardSelector() {
         onConfirm={(name) => {
           addDashboard(name)
           setCurrentDashboard(name)
+          toast.success(`Created new dashboard: "${name}"`);
         }}
         validate={(name) =>
           name.trim() !== "" && !dashboards.includes(name.trim())
@@ -159,6 +162,7 @@ export default function DashboardSelector() {
         cancelLabel="Cancel"
         onConfirm={() => {
           removeDashboard(pendingDelete)
+            toast.success(`"${pendingDelete}" dashboard deleted`);
           if (pendingDelete === currentDashboard) {
             setCurrentDashboard(
               dashboards.find((d) => d !== pendingDelete) || dashboards[0]
@@ -166,7 +170,9 @@ export default function DashboardSelector() {
           }
           setPendingDelete(null)
         }}
-        onCancel={() => setPendingDelete(null)}
+        onCancel={() => {
+        toast("Delete cancelled");
+        setPendingDelete(null);}}
       />
     </div>
   )
