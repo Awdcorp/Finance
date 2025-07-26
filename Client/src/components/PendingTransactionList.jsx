@@ -4,6 +4,7 @@ import AddScheduleModal from "./AddScheduleModal"
 import TextInputModal from "./TextInputModal"
 import ConfirmDialog from "./ConfirmDialog"
 import AddPendingItemModal from "./AddPendingItemModal"
+import { iconMap, categoryIcons, categoryColors } from "../constants/categories"
 import { Dialog } from "@headlessui/react"
 import {
   Pencil,
@@ -115,38 +116,42 @@ export default function PendingGroupList() {
                 </div>
               ) : (
                 groupItems.map((item, i) => (
-                  <div
-                    key={i}
-                    className="py-3 flex justify-between items-start text-sm cursor-pointer border-b border-neutral-700 last:border-b-0"
-                    onClick={() => setSelectedItem({ groupIndex, itemIndex: i })}
-                  >
-                    <div className="flex gap-3 items-start">
-                        <div className="text-xl">
-                          {/* If item.icon is a string (emoji), render it; otherwise use fallback Lucide icon */}
-                          {typeof item.icon === "string" ? (
-                            item.icon
-                          ) : (
-                            <ReceiptIndianRupee size={20} className="text-yellow-400" />
-                          )}
-                        </div>
-                      <div className="text-white">
-                        <div className="font-medium">{item.title}</div>
-                      </div>
+                <div
+                  key={i}
+                  className="py-3 flex justify-between items-start text-sm cursor-pointer border-b border-neutral-700 last:border-b-0"
+                  onClick={() => setSelectedItem({ groupIndex, itemIndex: i })}
+                >
+                  <div className="flex gap-3 items-center">
+                    <div className="text-xl">
+                      {iconMap[item.icon] || <ReceiptIndianRupee size={20} className="text-yellow-400" />}
                     </div>
-                    <div className="text-right space-y-1">
-                      <div className="text-xs text-gray-400">Unscheduled</div>
-                      <div
-                        className={`text-sm font-semibold px-2 py-1 rounded-md inline-block ${
-                          item.amount < 0
-                            ? "bg-red-500/20 text-red-400"
-                            : "bg-green-500/20 text-green-400"
-                        }`}
-                      >
-                         <IndianRupee size={14} className="inline-block mr-1" />
-                        {item.amount.toFixed(2)}
-                      </div>
+                    <div className="text-white flex flex-col items-start">
+                      <span className="font-medium">{item.title}</span>
+                      {item.category && (
+                        <span
+                          className={`text-xs capitalize px-2 py-0.5 rounded w-fit mt-1 ${
+                            categoryColors[item.category?.toLowerCase()] || "bg-neutral-700 text-gray-300"
+                          }`}
+                        >
+                          {item.category}
+                        </span>
+                      )}
                     </div>
                   </div>
+                  <div className="text-right space-y-1">
+                    <div className="text-xs text-gray-400">Unscheduled</div>
+                    <div
+                      className={`text-sm font-semibold px-2 py-1 rounded-md inline-flex items-center ${
+                        item.amount < 0
+                          ? "bg-red-500/20 text-red-400"
+                          : "bg-green-500/20 text-green-400"
+                      }`}
+                    >
+                      <IndianRupee size={14} />
+                      {item.amount.toFixed(2)}
+                    </div>
+                  </div>
+                </div>
                 ))
               )}
 
@@ -212,6 +217,8 @@ export default function PendingGroupList() {
         <AddPendingItemModal
           isOpen={true}
           isEditMode={true}
+          groupIndex={editInfo.groupIndex}
+          itemIndex={editInfo.itemIndex}   
           defaultValues={pendingGroups[editInfo.groupIndex].items[editInfo.itemIndex]}
           onSave={(updatedItem) => {
             const { editPendingItemInGroup } = useFinance.getState()

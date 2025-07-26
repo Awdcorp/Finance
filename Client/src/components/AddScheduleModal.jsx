@@ -6,41 +6,7 @@ import toast from 'react-hot-toast'
 import ConfirmDialog from './ConfirmDialog'
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
-
-import {
-  ReceiptIndianRupee,
-  ShoppingCart,
-  Bus,
-  Home,
-  PiggyBank,
-  Utensils,
-  Zap,
-  Phone,
-  Fuel,
-  TicketCheck,
-} from "lucide-react"
-
-const iconOptions = {
-  ReceiptIndianRupee,
-  ShoppingCart,
-  Bus,
-  Home,
-  PiggyBank,
-  Utensils,
-  Zap,
-  Phone,
-  Fuel,
-  TicketCheck,
-}
-
-const categoryOptions = [
-  'Rent',
-  'Groceries',
-  'Bills',
-  'Savings',
-  'Travel',
-  'Subscriptions',
-]
+import { categoryOptions, iconOptions } from "../constants/categories"
 
 export default function AddScheduleModal({
   isOpen,
@@ -146,37 +112,37 @@ export default function AddScheduleModal({
             </div>
 
 
-<div className="flex gap-2">
-  {/* Category Dropdown */}
-  <div className="w-1/2">
-    <label className="block mb-0.5 text-sm text-white">Category</label>
-    <select
-      value={category}
-      onChange={(e) => setCategory(e.target.value)}
-      className="w-full px-2 py-1.5 text-sm bg-zinc-800 rounded-md border border-zinc-600 text-white"
-    >
-      <option value="">Select Category</option>
-      {categoryOptions.map((c) => (
-        <option key={c} value={c}>{c}</option>
-      ))}
-    </select>
-  </div>
+            <div className="flex gap-2">
+              {/* Category Dropdown */}
+              <div className="w-1/2">
+                <label className="block mb-0.5 text-sm text-white">Category</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full px-2 py-1.5 text-sm bg-zinc-800 rounded-md border border-zinc-600 text-white"
+                >
+                  <option value="">Select Category</option>
+                  {categoryOptions.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
 
-  {/* Date Picker */}
-  <div className="w-1/2">
-    <label className="block mb-0.5 text-sm text-white">
-      Date <span className="text-red-400">*</span>
-    </label>
-    <DatePicker
-      selected={date ? new Date(date) : null}
-      onChange={(date) => setDate(date.toISOString().split("T")[0])}
-      dateFormat="dd-MM-yyyy"
-      placeholderText="Select a date"
-      className="w-full px-2 py-1.5 text-sm bg-zinc-800 border rounded-md text-white focus:outline-none"
-      calendarClassName="custom-calendar"
-    />
-  </div>
-</div>
+              {/* Date Picker */}
+              <div className="w-1/2">
+                <label className="block mb-0.5 text-sm text-white">
+                  Date <span className="text-red-400">*</span>
+                </label>
+                <DatePicker
+                  selected={date ? new Date(date) : null}
+                  onChange={(date) => setDate(date.toISOString().split("T")[0])}
+                  dateFormat="dd-MM-yyyy"
+                  placeholderText="Select a date"
+                  className="w-full px-2 py-1.5 text-sm bg-zinc-800 border rounded-md text-white focus:outline-none"
+                  calendarClassName="custom-calendar"
+                />
+              </div>
+            </div>
 
 
             <div>
@@ -196,52 +162,52 @@ export default function AddScheduleModal({
               </div>
             </div>
 
-<div className="flex items-end gap-2">
-  {/* Repeat Toggle */}
-<div className="flex flex-col gap-1">
-  <label htmlFor="repeat-toggle" className="text-sm text-white mb-0.5">
-    Repeat Every Month
-  </label>
+            <div className="flex items-end gap-2">
+              {/* Repeat Toggle */}
+              <div className="flex flex-col gap-1">
+                <label htmlFor="repeat-toggle" className="text-sm text-white mb-0.5">
+                  Repeat Every Month
+                </label>
 
-  {/* ✅ This part aligns toggle + label */}
-  <div className="flex items-center gap-2">
-    <button
-      id="repeat-toggle"
-      type="button"
-      role="switch"
-      aria-checked={repeat}
-      onClick={() => setRepeat(!repeat)}
-      className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors 
-        ${repeat ? "bg-blue-500" : "bg-zinc-600"}`}
-    >
-      <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform 
-          ${repeat ? "translate-x-5" : "translate-x-1"}`}
-      />
-    </button>
+                {/* ✅ This part aligns toggle + label */}
+                <div className="flex items-center gap-2">
+                  <button
+                    id="repeat-toggle"
+                    type="button"
+                    role="switch"
+                    aria-checked={repeat}
+                    onClick={() => setRepeat(!repeat)}
+                    className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors 
+                      ${repeat ? "bg-blue-500" : "bg-zinc-600"}`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform 
+                      ${repeat ? "translate-x-5" : "translate-x-1"}`}
+                    />
+                  </button>
 
-    {/* 👇 Appears inline with toggle */}
-    {repeat && (
-      <span className="text-xs text-white-400 font-medium">Select date</span>
-    )}
-  </div>
-</div>
+                  {/* 👇 Appears inline with toggle */}
+                  {repeat && (
+                    <span className="text-xs text-white-400 font-medium">Select date</span>
+                  )}
+                </div>
+              </div>
 
 
-  {/* Repeat Until Date Picker (only shown if repeat is true) */}
-  {repeat && (
-    <div className="flex-1">
-      <DatePicker
-        selected={repeatEndDate ? new Date(repeatEndDate) : null}
-        onChange={(date) => setRepeatEndDate(date.toISOString().split("T")[0])}
-        dateFormat="dd-MM-yyyy"
-        placeholderText="Select end date"
-        className="w-full px-2 py-1.5 text-sm bg-zinc-800 border rounded-md text-white focus:outline-none"
-        calendarClassName="custom-calendar"
-      />
-    </div>
-  )}
-</div>
+              {/* Repeat Until Date Picker (only shown if repeat is true) */}
+              {repeat && (
+                <div className="flex-1">
+                  <DatePicker
+                    selected={repeatEndDate ? new Date(repeatEndDate) : null}
+                    onChange={(date) => setRepeatEndDate(date.toISOString().split("T")[0])}
+                    dateFormat="dd-MM-yyyy"
+                    placeholderText="Select end date"
+                    className="w-full px-2 py-1.5 text-sm bg-zinc-800 border rounded-md text-white focus:outline-none"
+                    calendarClassName="custom-calendar"
+                  />
+                </div>
+              )}
+            </div>
 
 
             <button

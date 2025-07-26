@@ -1,8 +1,11 @@
-// src/components/AddPendingItemModal.jsx
 import React, { useState, useEffect } from "react"
 import { Dialog } from "@headlessui/react"
 import useFinance from "../state/finance"
 import toast from "react-hot-toast"
+import { X } from "lucide-react"
+import { categoryOptions, iconOptions } from "../constants/categories"
+import DatePicker from "react-datepicker"
+import "react-datepicker/dist/react-datepicker.css"
 
 export default function AddPendingItemModal({
   isOpen,
@@ -15,12 +18,14 @@ export default function AddPendingItemModal({
 }) {
   const [title, setTitle] = useState("")
   const [amount, setAmount] = useState("")
+  const [category, setCategory] = useState("")
+  const [icon, setIcon] = useState("ReceiptIndianRupee")
+  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0])
+
   const [showSchedule, setShowSchedule] = useState(false)
   const [selectedScheduleGroup, setSelectedScheduleGroup] = useState(0)
-  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0])
   const [repeat, setRepeat] = useState("none")
   const [repeatEndDate, setRepeatEndDate] = useState("")
-  const [icon, setIcon] = useState("📝") // simple emoji selector for now
 
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
 
@@ -28,6 +33,9 @@ export default function AddPendingItemModal({
     if (isEditMode && defaultValues) {
       setTitle(defaultValues.title || "")
       setAmount(defaultValues.amount?.toString() || "")
+      setCategory(defaultValues.category || "")
+      setIcon(defaultValues.icon || "ReceiptIndianRupee")
+      setDate(defaultValues.date || new Date().toISOString().split("T")[0])
     }
   }, [defaultValues, isEditMode])
 
@@ -43,7 +51,14 @@ export default function AddPendingItemModal({
       return
     }
 
-    const updatedItem = { title: title.trim(), amount: parsedAmount }
+    const updatedItem = {
+      title: title.trim(),
+      amount: parsedAmount,
+      category,
+      icon,
+      date,
+    }
+
     if (isEditMode && onSave) {
       onSave(updatedItem)
       toast.success("Item updated")
@@ -53,102 +68,183 @@ export default function AddPendingItemModal({
 
   const handleSchedule = () => {
     const parsedAmount = parseFloat(amount)
-    if (isNaN(parsedAmount) || !title.trim()) {
-      toast.error("Fill valid title and amount first")
+    if (!title.trim() || isNaN(parsedAmount)) {
+      toast.error("Fill valid title and amount")
       return
     }
 
     const itemToSchedule = {
       title: title.trim(),
       amount: parsedAmount,
+      category,
+      icon,
       date,
       repeat: repeat === "none" ? null : repeat,
-      repeatEndDate: repeat !== "none" && repeatEndDate ? repeatEndDate : null,
-      icon
+      repeatEndDate: repeat !== "none" ? repeatEndDate : null,
     }
 
     useFinance.getState().addItemToGroup(selectedScheduleGroup, itemToSchedule)
     useFinance.getState().removePendingItemFromGroup(groupIndex, itemIndex)
-    toast.success("Item moved to schedule")
+    toast.success("Item scheduled")
     onClose()
   }
 
   return (
     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
-      <div className="fixed inset-0 bg-black/40" />
-      <div className="fixed inset-0 flex items-center justify-center">
-        <Dialog.Panel className="bg-neutral-800 p-6 rounded-xl text-white w-80">
-          <Dialog.Title className="text-lg font-semibold mb-4">
-            {isEditMode ? "Edit Draft Item" : "Add Pending Item"}
-          </Dialog.Title>
+      <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
+      <div className="fixed inset-0 flex items-center justify-center p-3">
+        <Dialog.Panel className="bg-zinc-900 rounded-lg w-full max-w-sm p-4 shadow-xl border border-zinc-700">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-3">
+            <Dialog.Title className="text-base font-semibold text-white">
+              {isEditMode ? "Edit Draft Item" : "Add Pending Item"}
+            </Dialog.Title>
+            <button onClick={onClose} className="text-gray-400 hover:text-white">
+              <X size={18} />
+            </button>
+          </div>
 
-          <div className="space-y-3">
-            <input
-              className="w-full p-2 rounded bg-neutral-700"
-              placeholder="Title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-            <input
-              className="w-full p-2 rounded bg-neutral-700"
-              placeholder="Amount"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
+          {/* Form */}
+          <form className="space-y-3 text-sm text-white">
+            <div className="flex gap-2">
+              <div className="w-2/3">
+                <label className="block mb-0.5 text-sm">Title *</label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-2 py-1.5 bg-zinc-800 rounded-md border border-zinc-600"
+                />
+              </div>
 
-            <div className="flex justify-between mt-4">
+              <div className="w-1/3">
+                <label className="block mb-0.5 text-sm">Amount (₹) *</label>
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="w-full px-2 py-1.5 bg-zinc-800 rounded-md border border-zinc-600"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <div className="w-1/2">
+                <label className="block mb-0.5 text-sm">Category</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full px-2 py-1.5 bg-zinc-800 border border-zinc-600 rounded-md text-white"
+                >
+                  <option value="">Select Category</option>
+                  {categoryOptions.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="w-1/2">
+                <label className="block mb-0.5 text-sm text-white">
+                  Date <span className="text-red-400">*</span>
+                </label>
+                <DatePicker
+                  selected={date ? new Date(date) : null}
+                  onChange={(date) => setDate(date.toISOString().split("T")[0])}
+                  dateFormat="dd-MM-yyyy"
+                  placeholderText="Select a date"
+                  className="w-full px-2 py-1.5 text-sm bg-zinc-800 border rounded-md text-white focus:outline-none"
+                  calendarClassName="custom-calendar"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block mb-1 text-sm">Choose Icon</label>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(iconOptions).map(([key, Icon]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`p-1.5 rounded-md w-8 h-8 flex items-center justify-center
+                      ${icon === key ? "bg-blue-500 text-white" : "bg-neutral-800 text-white"}`}
+                    onClick={() => setIcon(key)}
+                  >
+                    <Icon size={16} />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-between mt-4 gap-2">
               <button
+                type="button"
                 onClick={onClose}
-                className="text-sm px-3 py-1 bg-gray-600 rounded"
+                className="w-full bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 rounded-md"
               >
                 Cancel
               </button>
 
-              {isEditMode && (
-                <div className="flex gap-2">
+              {isEditMode ? (
+                <>
                   <button
+                    type="button"
                     onClick={handleSave}
-                    className="text-sm px-3 py-1 bg-yellow-500 text-black font-semibold rounded"
+                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-semibold py-2 rounded-md"
                   >
                     Save
                   </button>
                   <button
-                    onClick={() => setShowSchedule((prev) => !prev)}
-                    className="text-sm px-3 py-1 bg-green-500 text-black font-semibold rounded"
+                    type="button"
+                    onClick={() => setShowSchedule(true)}
+                    className="w-full bg-green-500 hover:bg-green-600 text-black font-semibold py-2 rounded-md"
                   >
-                    Schedule This Item
+                    Schedule
                   </button>
-                </div>
-              )}
-
-              {!isEditMode && (
+                </>
+              ) : (
                 <button
+                  type="button"
                   onClick={() => {
+                    const parsedAmount = parseFloat(amount)
+                    if (isNaN(parsedAmount)) {
+                      toast.error("Invalid amount")
+                      return
+                    }
+
                     useFinance.getState().addPendingItemToGroup(groupIndex, {
                       title: title.trim(),
-                      amount: parseFloat(amount),
-                      date: new Date().toISOString(),
+                      amount: parsedAmount,
+                      icon,
+                      category,
+                      date,
                     })
                     toast.success("Item added")
                     setTitle("")
                     setAmount("")
+                    setCategory("")
+                    setIcon("ReceiptIndianRupee")
+                    setDate(new Date().toISOString().split("T")[0])
                     onClose()
                   }}
-                  className="text-sm px-3 py-1 bg-yellow-500 text-black font-semibold rounded"
+                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-semibold py-2 rounded-md"
                 >
-                  Add
+                  Add Item
                 </button>
               )}
             </div>
+          </form>
 
-            {/* Scheduling Form */}
-            {showSchedule && (
-              <div className="mt-4 space-y-2">
-                <label className="block text-sm text-gray-400">Select Schedule Group:</label>
+          {/* Schedule Section */}
+          {showSchedule && (
+            <div className="mt-6 text-white text-sm space-y-3 border-t border-zinc-700 pt-4">
+              <div>
+                <label className="block text-sm mb-1">Schedule Group</label>
                 <select
                   value={selectedScheduleGroup}
                   onChange={(e) => setSelectedScheduleGroup(parseInt(e.target.value))}
-                  className="w-full p-2 rounded bg-neutral-700"
+                  className="w-full px-2 py-1.5 bg-zinc-800 border border-zinc-600 rounded-md"
                 >
                   {scheduleGroups.map((group, i) => (
                     <option key={i} value={i}>
@@ -156,61 +252,63 @@ export default function AddPendingItemModal({
                     </option>
                   ))}
                 </select>
-
-                <label className="block text-sm text-gray-400 mt-2">Date:</label>
-                <input
-                  type="date"
-                  className="w-full p-2 rounded bg-neutral-700"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                />
-
-                <label className="block text-sm text-gray-400 mt-2">Repeat:</label>
-                <select
-                  className="w-full p-2 rounded bg-neutral-700"
-                  value={repeat}
-                  onChange={(e) => setRepeat(e.target.value)}
-                >
-                  <option value="none">None</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="weekly">Weekly</option>
-                </select>
-
-                {repeat !== "none" && (
-                  <>
-                    <label className="block text-sm text-gray-400 mt-2">Repeat End Date:</label>
-                    <input
-                      type="date"
-                      className="w-full p-2 rounded bg-neutral-700"
-                      value={repeatEndDate}
-                      onChange={(e) => setRepeatEndDate(e.target.value)}
-                    />
-                  </>
-                )}
-
-                <label className="block text-sm text-gray-400 mt-2">Icon (optional):</label>
-                <select
-                  className="w-full p-2 rounded bg-neutral-700"
-                  value={icon}
-                  onChange={(e) => setIcon(e.target.value)}
-                >
-                  <option value="📝">📝 Note</option>
-                  <option value="💸">💸 Salary</option>
-                  <option value="🏠">🏠 Rent</option>
-                  <option value="🍔">🍔 Food</option>
-                  <option value="🚌">🚌 Travel</option>
-                  <option value="⚡">⚡ Electricity</option>
-                </select>
-
-                <button
-                  onClick={handleSchedule}
-                  className="w-full mt-3 text-sm py-2 bg-blue-500 text-white rounded font-semibold"
-                >
-                  Confirm Schedule
-                </button>
               </div>
-            )}
-          </div>
+
+              <div className="flex items-end gap-2">
+              {/* Repeat Toggle */}
+              <div className="flex flex-col gap-1">
+                <label htmlFor="repeat-toggle" className="text-sm text-white mb-0.5">
+                  Repeat Every Month
+                </label>
+
+                {/* ✅ This part aligns toggle + label */}
+                <div className="flex items-center gap-2">
+                  <button
+                    id="repeat-toggle"
+                    type="button"
+                    role="switch"
+                    aria-checked={repeat}
+                    onClick={() => setRepeat(!repeat)}
+                    className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors 
+                      ${repeat ? "bg-blue-500" : "bg-zinc-600"}`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform 
+                      ${repeat ? "translate-x-5" : "translate-x-1"}`}
+                    />
+                  </button>
+
+                  {/* 👇 Appears inline with toggle */}
+                  {repeat && (
+                    <span className="text-xs text-white-400 font-medium">Select date</span>
+                  )}
+                </div>
+              </div>
+
+
+              {/* Repeat Until Date Picker (only shown if repeat is true) */}
+              {repeat && (
+                <div className="flex-1">
+                  <DatePicker
+                    selected={repeatEndDate ? new Date(repeatEndDate) : null}
+                    onChange={(date) => setRepeatEndDate(date.toISOString().split("T")[0])}
+                    dateFormat="dd-MM-yyyy"
+                    placeholderText="Select end date"
+                    className="w-full px-2 py-1.5 text-sm bg-zinc-800 border rounded-md text-white focus:outline-none"
+                    calendarClassName="custom-calendar"
+                  />
+                </div>
+              )}
+              </div>
+
+              <button
+                onClick={handleSchedule}
+                className="w-full mt-2 bg-green-500 hover:bg-green-600 text-black font-semibold py-2 rounded-md"
+              >
+                Confirm Schedule
+              </button>
+            </div>
+          )}
         </Dialog.Panel>
       </div>
     </Dialog>

@@ -106,7 +106,7 @@ export default function Dashboard({ user }) {
 
             <button
               onClick={() => setIsAddGroupOpen(true)}
-              className="text-blue-400 hover:text-yellow-300 text-sm pb-4"
+              className="text-blue-400 hover:text-yellow-300 text-sm pb-6"
             >
               + Add New Group
             </button>

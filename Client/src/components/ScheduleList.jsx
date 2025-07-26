@@ -4,17 +4,8 @@ import AddScheduleModal from "./AddScheduleModal"
 import TextInputModal from "./TextInputModal"
 import ConfirmDialog from "./ConfirmDialog"
 import toast from "react-hot-toast"
-import {
-  IndianRupee,
-  ShoppingCart,
-  Utensils,
-  Bus,
-  Home,
-  School,
-  PiggyBank,
-  Zap,
-  FileText,CirclePlus,ReceiptIndianRupee,
-} from "lucide-react"
+import { IndianRupee, CirclePlus } from "lucide-react"
+import { categoryIcons, categoryColors, iconMap } from "../constants/categories"
 
 export default function ScheduleList({ items = [] }) {
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
@@ -44,40 +35,6 @@ export default function ScheduleList({ items = [] }) {
     }
   }, [])
 
-  const categoryIcons = {
-    groceries: ShoppingCart,
-    food: Utensils,
-    transport: Bus,
-    rent: Home,
-    education: School,
-    savings: PiggyBank,
-    bills: Zap,
-    default: FileText,
-  }
-
-  const categoryColors = {
-    groceries: "bg-pink-500/20 text-pink-400",
-    food: "bg-amber-500/20 text-amber-400",
-    transport: "bg-blue-500/20 text-blue-400",
-    rent: "bg-purple-500/20 text-purple-400",
-    education: "bg-teal-500/20 text-teal-400",
-    savings: "bg-green-500/20 text-green-400",
-    bills: "bg-red-500/20 text-red-400",
-  }
-
-  const iconMap = {
-  ReceiptIndianRupee: <ReceiptIndianRupee size={20} className="text-yellow-400" />,
-  IndianRupee: <IndianRupee size={20} className="text-yellow-400" />,
-  ShoppingCart: <ShoppingCart size={20} className="text-yellow-400" />,
-  Utensils: <Utensils size={20} className="text-yellow-400" />,
-  Bus: <Bus size={20} className="text-yellow-400" />,
-  Home: <Home size={20} className="text-yellow-400" />,
-  School: <School size={20} className="text-yellow-400" />,
-  PiggyBank: <PiggyBank size={20} className="text-yellow-400" />,
-  Zap: <Zap size={20} className="text-yellow-400" />,
-  FileText: <FileText size={20} className="text-yellow-400" />,
-}
-
   return (
     <div className="px-4 mt-4 relative">
       {scheduleGroups.map((group, groupIndex) => {
@@ -89,14 +46,13 @@ export default function ScheduleList({ items = [] }) {
             <div className="flex justify-between items-center text-sm text-gray-400 mb-2 px-1">
               <div className="flex items-center gap-2">
                 <span className="uppercase">{group.title || "Untitled"}</span>
-                  <span
-                    className={`font-semibold text-xs inline-flex items-center gap-1 ${
-                      totalAmount < 0 ? "text-red-400" : "text-green-400"
+                <span
+                  className={`font-semibold text-xs inline-flex items-center gap-1 ${totalAmount < 0 ? "text-red-400" : "text-green-400"
                     }`}
-                  >
-                    <IndianRupee size={12} />
-                    {totalAmount.toFixed(2)}
-                  </span>
+                >
+                  <IndianRupee size={12} />
+                  {totalAmount.toFixed(2)}
+                </span>
               </div>
 
               <div className="relative">
@@ -172,12 +128,19 @@ export default function ScheduleList({ items = [] }) {
                         }
                       }}
                     >
-                      <div className="flex gap-3 items-start">
+                      <div className="flex gap-3 items-center">
                         <div className="text-xl">
                           {iconMap[item.icon] || <Icon size={20} className="text-yellow-400" />}
                         </div>
-                        <div className="text-white">
-                          <div className="font-medium">{item.title}</div>
+                        <div className="text-white flex flex-col items-start">
+                          <span className="font-medium">{item.title}</span>
+                          {item.category && (
+                            <span
+                              className={`text-xs capitalize px-2 py-0.5 rounded w-fit mt-1 ${categoryColors[item.category?.toLowerCase()] || "bg-neutral-700 text-gray-300"}`}
+                            >
+                              {item.category}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="text-right space-y-1">
@@ -215,14 +178,14 @@ export default function ScheduleList({ items = [] }) {
             editInfo.itemIndex != null
               ? scheduleGroups[editInfo.groupIndex].items[editInfo.itemIndex]
               : {
-                  title: "",
-                  amount: 0,
-                  date: "",
-                  icon: "ReceiptIndianRupee",
-                  category: "",
-                  repeat: false,
-                  repeatEndDate: "",
-                }
+                title: "",
+                amount: 0,
+                date: "",
+                icon: "ReceiptIndianRupee",
+                category: "",
+                repeat: false,
+                repeatEndDate: "",
+              }
           }
           groupIndex={editInfo.groupIndex}
           onSave={(itemData) => {
@@ -238,10 +201,10 @@ export default function ScheduleList({ items = [] }) {
           onDelete={
             editInfo.itemIndex != null
               ? () => {
-                  deleteItemFromGroup(editInfo.groupIndex, editInfo.itemIndex)
-                  toast.success("Item deleted")
-                  setEditInfo(null)
-                }
+                deleteItemFromGroup(editInfo.groupIndex, editInfo.itemIndex)
+                toast.success("Item deleted")
+                setEditInfo(null)
+              }
               : undefined
           }
           onClose={() => setEditInfo(null)}

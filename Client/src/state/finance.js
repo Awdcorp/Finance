@@ -264,7 +264,20 @@ const useFinance = create((set, get) => ({
 
   removePendingItemFromGroup: (groupIndex, itemIndex) => {
     const { pendingGroups } = get();
+    if (
+      !Array.isArray(pendingGroups) ||
+      !pendingGroups[groupIndex] ||
+      !Array.isArray(pendingGroups[groupIndex].items)
+    ) {
+      console.warn("Invalid removePendingItemFromGroup params", { groupIndex, itemIndex });
+      return;
+    }
+
     const updated = [...pendingGroups];
+    updated[groupIndex] = {
+      ...updated[groupIndex],
+      items: [...updated[groupIndex].items],
+    };
     updated[groupIndex].items.splice(itemIndex, 1);
     get().updatePendingGroups(updated);
   },

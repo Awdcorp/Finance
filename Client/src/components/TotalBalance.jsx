@@ -59,7 +59,7 @@ export default function TotalBalance({ selectedDate }) {
     try {
       // ✅ Correct order: groupIndex first, then item object
       addItemToGroup(targetGroupIndex, {
-        title: "⚙️ Balance Adjustment",
+        title: "Balance Adjustment",
         amount: diff,
         date: new Date().toISOString().split("T")[0], // Format: yyyy-mm-dd
         category: "Miscellaneous",
