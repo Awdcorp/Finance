@@ -17,7 +17,7 @@ const useFinance = create((set, get) => ({
     "My Budget": {
       scheduleGroups: [{ title: "This Month’s Schedule", items: [] }],
       pendingGroups: [{ title: "General Drafts", items: [] }],
-      lastModified: Date.now(), // ✅ timestamp
+      lastModified: Date.now(),
     },
   },
 
@@ -59,6 +59,20 @@ const useFinance = create((set, get) => ({
   loadUserData: async (userId) => {
     const userDocRef = doc(db, "users", userId);
 
+    // ✅ Restore initialData fallback for clean clarity
+    const initialData = {
+      dashboards: ["My Budget"],
+      currentDashboard: "My Budget",
+      dashboardData: {
+        "My Budget": {
+          scheduleGroups: [{ title: "This Month’s Schedule", items: [] }],
+          pendingGroups: [{ title: "General Drafts", items: [] }],
+          lastModified: Date.now(),
+        },
+      },
+      lastUpdated: Date.now(),
+    };
+
     if (!navigator.onLine) {
       console.warn("🚫 No internet. Loading from local backup...");
       get().setSyncStatus("offline");
@@ -70,20 +84,6 @@ const useFinance = create((set, get) => ({
 
     try {
       const snapshot = await getDoc(userDocRef);
-
-      const initialData = {
-        dashboards: ["My Budget"],
-        currentDashboard: "My Budget",
-        dashboardData: {
-          "My Budget": {
-            scheduleGroups: [{ title: "This Month’s Schedule", items: [] }],
-            pendingGroups: [{ title: "General Drafts", items: [] }],
-            lastModified: Date.now(),
-          },
-        },
-        lastUpdated: Date.now(),
-      };
-
       const userData = snapshot.exists() ? snapshot.data() : initialData;
       const loadedTime = userData.lastUpdated || Date.now();
 
@@ -114,7 +114,7 @@ const useFinance = create((set, get) => ({
       console.warn("⚠️ Firestore load failed, trying local backup...", e);
       get().setSyncStatus("error");
       const success = get().loadBackupFromLocalStorage();
-      if (success) set({ userId });
+      if (success) set({ userId }); // ✅ restored missing userId set
       else console.error("❌ No usable data available.");
     }
   },
@@ -144,7 +144,6 @@ const useFinance = create((set, get) => ({
       if (currentSnapshot.exists()) {
         const server = currentSnapshot.data();
         const serverLastUpdated = server.lastUpdated || 0;
-
         const serverDashboards = server.dashboards || [];
         const serverData = server.dashboardData || {};
 
@@ -161,10 +160,9 @@ const useFinance = create((set, get) => ({
                 result.push(group);
               } else {
                 const newItems = group.items.filter(
-                  (item) =>
-                    !existing.items.some(
-                      (i) => i.title === item.title && i.amount === item.amount
-                    )
+                  (item) => !existing.items.some(
+                    (i) => i.title === item.title && i.amount === item.amount
+                  )
                 );
                 existing.items = [...existing.items, ...newItems];
               }
@@ -175,20 +173,17 @@ const useFinance = create((set, get) => ({
           mergedData = { ...serverData };
           for (const name of mergedDashboards) {
             const localDash = localData[name] || {};
-            const serverDash = serverData[name] || {
-              scheduleGroups: [],
-              pendingGroups: [],
-            };
+            const serverDash = serverData[name] || { scheduleGroups: [], pendingGroups: [] };
 
             mergedData[name] = {
               scheduleGroups: mergeGroups(localDash.scheduleGroups || [], serverDash.scheduleGroups || []),
               pendingGroups: mergeGroups(localDash.pendingGroups || [], serverDash.pendingGroups || []),
-              lastModified: Date.now(), // ✅ add lastModified per dashboard
+              lastModified: Date.now(),
             };
           }
         } else {
           Object.entries(localData).forEach(([name, val]) => {
-            if (!val.lastModified) val.lastModified = Date.now(); // ✅ fallback
+            if (!val.lastModified) val.lastModified = Date.now();
           });
         }
       }
@@ -201,7 +196,7 @@ const useFinance = create((set, get) => ({
       };
 
       await setDoc(userRef, finalData);
-      localStorage.setItem("financeBackup", JSON.stringify(finalData));
+      localStorage.setItem("financeBackup", JSON.stringify(finalData)); // ✅ always save backup
       setSyncStatus("synced");
       setLastLoaded(finalData.lastUpdated);
       console.log("✅ Data saved with merge (if needed).");
@@ -213,7 +208,7 @@ const useFinance = create((set, get) => ({
   },
 
   setCurrentDashboard: (name) => {
-    set({ currentDashboard: name }, false, "setCurrentDashboard");
+    set({ currentDashboard: name }, false, "setCurrentDashboard"); // ✅ restored devtools label
     get().syncDashboard();
     get().saveUserData();
   },
@@ -245,10 +240,7 @@ const useFinance = create((set, get) => ({
     updatedData[newName] = { ...updatedData[oldName], lastModified: Date.now() };
     delete updatedData[oldName];
 
-    set({
-      dashboards: updatedDashboards,
-      dashboardData: updatedData,
-    });
+    set({ dashboards: updatedDashboards, dashboardData: updatedData });
     get().saveUserData();
   },
 
@@ -258,10 +250,7 @@ const useFinance = create((set, get) => ({
     const updatedData = { ...dashboardData };
     delete updatedData[name];
 
-    set({
-      dashboards: updatedDashboards,
-      dashboardData: updatedData,
-    });
+    set({ dashboards: updatedDashboards, dashboardData: updatedData });
     get().saveUserData();
   },
 
@@ -277,6 +266,49 @@ const useFinance = create((set, get) => ({
     };
     set({ dashboardData: updated, scheduleGroups: groups });
     get().saveUserData();
+  },
+
+  addScheduleGroup: (group) => {
+    const { scheduleGroups } = get();
+    get().updateScheduleGroups([...scheduleGroups, group]);
+  },
+
+  renameGroup: (index, newTitle) => {
+    const { scheduleGroups } = get();
+    const updated = [...scheduleGroups];
+    updated[index].title = newTitle;
+    get().updateScheduleGroups(updated);
+  },
+
+  deleteGroup: (index) => {
+    const { scheduleGroups } = get();
+    const updated = [...scheduleGroups];
+    updated.splice(index, 1);
+    get().updateScheduleGroups(updated);
+  },
+
+  addItemToGroup: (groupIndex, item) => {
+    const { scheduleGroups } = get();
+    const updated = [...scheduleGroups];
+    updated[groupIndex].items.push(item);
+    get().updateScheduleGroups(updated);
+  },
+
+  editItemInGroup: (groupIndex, itemIndex, updatedItem) => {
+    const { scheduleGroups } = get();
+    const updated = [...scheduleGroups];
+    updated[groupIndex].items[itemIndex] = {
+      ...updated[groupIndex].items[itemIndex],
+      ...updatedItem,
+    };
+    get().updateScheduleGroups(updated);
+  },
+
+  deleteItemFromGroup: (groupIndex, itemIndex) => {
+    const { scheduleGroups } = get();
+    const updated = [...scheduleGroups];
+    updated[groupIndex].items.splice(itemIndex, 1);
+    get().updateScheduleGroups(updated);
   },
 
   updatePendingGroups: (groups) => {
