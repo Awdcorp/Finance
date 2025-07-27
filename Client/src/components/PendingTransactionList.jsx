@@ -16,7 +16,7 @@ import {
 } from "lucide-react"
 import toast from "react-hot-toast"
 
-export default function PendingGroupList() {
+export default function PendingGroupList({ selectedDate }) {
   const pendingGroups = useFinance((state) => state.pendingGroups)
   const removePendingItemFromGroup = useFinance((state) => state.removePendingItemFromGroup)
   const renamePendingGroup = useFinance((state) => state.renamePendingGroup)
@@ -231,6 +231,7 @@ export default function PendingGroupList() {
           isOpen={true}
           isEditMode={true}
           groupIndex={editInfo.groupIndex}
+          fallbackMonthDate={selectedDate}
           itemIndex={editInfo.itemIndex}   
           defaultValues={pendingGroups[editInfo.groupIndex].items[editInfo.itemIndex]}
           onSave={(updatedItem) => {
@@ -269,6 +270,7 @@ export default function PendingGroupList() {
         <AddPendingItemModal
           isOpen={true}
           groupIndex={addItemGroupIndex}
+          fallbackMonthDate={selectedDate}
           onClose={() => setAddItemGroupIndex(null)}
           onSave={(newItem) => {
             useFinance.getState().addPendingItemToGroup(addItemGroupIndex, newItem)

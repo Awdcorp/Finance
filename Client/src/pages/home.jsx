@@ -107,6 +107,7 @@ export default function Dashboard({ user }) {
                 year: "numeric",
               })}'s Schedule`}
               items={currentMonthItems}
+              selectedDate={selectedDate}
             />
 
             <button
@@ -117,7 +118,7 @@ export default function Dashboard({ user }) {
             </button>
 
             <div className="px-4"><PendingSummaryCard /></div>
-            <PendingTransactionList />
+            <PendingTransactionList selectedDate={selectedDate}/>
 
             <button
               onClick={() => setShowAddPendingGroup(true)}

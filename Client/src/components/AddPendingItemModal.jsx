@@ -16,6 +16,7 @@ export default function AddPendingItemModal({
   groupIndex,
   itemIndex = 0,
   onSave,
+  fallbackMonthDate = null, // ✅ added
 }) {
   const [title, setTitle] = useState("")
   const [amount, setAmount] = useState("")
@@ -90,6 +91,13 @@ export default function AddPendingItemModal({
     onClose()
   }
 
+  // ✅ Show calendar from fallback month if no date yet
+  const selectedDateForCalendar = date
+    ? new Date(date)
+    : fallbackMonthDate
+      ? new Date(fallbackMonthDate)
+      : null
+
   return (
     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
@@ -154,20 +162,13 @@ export default function AddPendingItemModal({
                   Date <span className="text-red-400">*</span>
                 </label>
                 <DatePicker
-                  selected={date ? new Date(date) : null}
+                  selected={selectedDateForCalendar}
                   onChange={(date) => setDate(date.toISOString().split("T")[0])}
                   dateFormat="dd-MM-yyyy"
                   placeholderText="Select a date"
                   className="w-full px-2 py-1.5 text-sm bg-zinc-800 border rounded-md text-white focus:outline-none"
                   calendarClassName="custom-calendar"
-                  popperModifiers={[
-                    {
-                      name: "preventOverflow",
-                      options: {
-                        boundary: "viewport",
-                      },
-                    },
-                  ]}
+                  popperModifiers={[{ name: "preventOverflow", options: { boundary: "viewport" } }]}
                 />
               </div>
             </div>
@@ -267,58 +268,44 @@ export default function AddPendingItemModal({
               </div>
 
               <div className="flex items-end gap-2">
-              {/* Repeat Toggle */}
-              <div className="flex flex-col gap-1">
-                <label htmlFor="repeat-toggle" className="text-sm text-white mb-0.5">
-                  Repeat Every Month
-                </label>
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="repeat-toggle" className="text-sm text-white mb-0.5">
+                    Repeat Every Month
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      id="repeat-toggle"
+                      type="button"
+                      role="switch"
+                      aria-checked={repeat}
+                      onClick={() => setRepeat(!repeat)}
+                      className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors 
+                        ${repeat ? "bg-blue-500" : "bg-zinc-600"}`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform 
+                        ${repeat ? "translate-x-5" : "translate-x-1"}`}
+                      />
+                    </button>
+                    {repeat && (
+                      <span className="text-xs text-white-400 font-medium">Select date</span>
+                    )}
+                  </div>
+                </div>
 
-                {/* ✅ This part aligns toggle + label */}
-                <div className="flex items-center gap-2">
-                  <button
-                    id="repeat-toggle"
-                    type="button"
-                    role="switch"
-                    aria-checked={repeat}
-                    onClick={() => setRepeat(!repeat)}
-                    className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors 
-                      ${repeat ? "bg-blue-500" : "bg-zinc-600"}`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform 
-                      ${repeat ? "translate-x-5" : "translate-x-1"}`}
+                {repeat && (
+                  <div className="flex-1">
+                    <DatePicker
+                      selected={repeatEndDate ? new Date(repeatEndDate) : null}
+                      onChange={(date) => setRepeatEndDate(date.toISOString().split("T")[0])}
+                      dateFormat="dd-MM-yyyy"
+                      placeholderText="Select end date"
+                      className="w-full px-2 py-1.5 text-sm bg-zinc-800 border rounded-md text-white focus:outline-none"
+                      calendarClassName="custom-calendar"
+                      popperModifiers={[{ name: "preventOverflow", options: { boundary: "viewport" } }]}
                     />
-                  </button>
-
-                  {/* 👇 Appears inline with toggle */}
-                  {repeat && (
-                    <span className="text-xs text-white-400 font-medium">Select date</span>
-                  )}
-                </div>
-              </div>
-
-
-              {/* Repeat Until Date Picker (only shown if repeat is true) */}
-              {repeat && (
-                <div className="flex-1">
-                  <DatePicker
-                    selected={repeatEndDate ? new Date(repeatEndDate) : null}
-                    onChange={(date) => setRepeatEndDate(date.toISOString().split("T")[0])}
-                    dateFormat="dd-MM-yyyy"
-                    placeholderText="Select end date"
-                    className="w-full px-2 py-1.5 text-sm bg-zinc-800 border rounded-md text-white focus:outline-none"
-                    calendarClassName="custom-calendar"
-                    popperModifiers={[
-                      {
-                        name: "preventOverflow",
-                        options: {
-                          boundary: "viewport",
-                        },
-                      },
-                    ]}
-                  />
-                </div>
-              )}
+                  </div>
+                )}
               </div>
 
               <button

@@ -7,7 +7,7 @@ import toast from "react-hot-toast"
 import { IndianRupee, CirclePlus } from "lucide-react"
 import { categoryIcons, categoryColors, iconMap } from "../constants/categories"
 
-export default function ScheduleList({ items = [] }) {
+export default function ScheduleList({ items = [], selectedDate }) {
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
   const editItemInGroup = useFinance((state) => state.editItemInGroup)
   const addItemToGroup = useFinance((state) => state.addItemToGroup)
@@ -195,6 +195,7 @@ export default function ScheduleList({ items = [] }) {
               }
           }
           groupIndex={editInfo.groupIndex}
+          fallbackMonthDate={selectedDate}
           onSave={(itemData) => {
             if (editInfo.itemIndex != null) {
               editItemInGroup(editInfo.groupIndex, editInfo.itemIndex, itemData)

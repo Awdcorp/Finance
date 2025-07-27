@@ -17,6 +17,7 @@ export default function AddScheduleModal({
   onSave = null,
   onDelete = null,
   groupIndex = 0,
+  fallbackMonthDate = null, // ✅ newly added
 }) {
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
@@ -36,8 +37,8 @@ export default function AddScheduleModal({
     if (defaultValues) {
       setTitle(defaultValues.title || '')
       const rawAmount = parseFloat(defaultValues.amount)
-      setIsPositive(rawAmount >= 0)                            // ✅ Controls toggle
-      setAmount(Math.abs(rawAmount).toString() || '') 
+      setIsPositive(rawAmount >= 0)
+      setAmount(Math.abs(rawAmount).toString() || '')
       setDate(defaultValues.date || '')
       setCategory(defaultValues.category || '')
       setIcon(defaultValues.icon || 'ReceiptIndianRupee')
@@ -76,6 +77,13 @@ export default function AddScheduleModal({
     onClose()
   }
 
+  // ✅ Pick appropriate date to show on calendar
+  const selectedDateForCalendar = date
+    ? new Date(date)
+    : fallbackMonthDate
+      ? new Date(fallbackMonthDate)
+      : null;
+
   return (
     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
@@ -92,7 +100,6 @@ export default function AddScheduleModal({
 
           <form onSubmit={handleSubmit} className="space-y-3 text-sm text-white">
             <div className="flex gap-2">
-              {/* Title Field */}
               <div className="w-1/2">
                 <label className="block mb-0.5 text-sm">Title *</label>
                 <input
@@ -104,7 +111,6 @@ export default function AddScheduleModal({
                 />
               </div>
 
-              {/* Amount Field */}
               <div className="w-1/2">
                 <AmountInput
                   value={amount}
@@ -117,7 +123,6 @@ export default function AddScheduleModal({
             </div>
 
             <div className="flex gap-2">
-              {/* Category Dropdown */}
               <div className="w-1/2">
                 <label className="block mb-0.5 text-sm text-white">Category</label>
                 <select
@@ -132,30 +137,21 @@ export default function AddScheduleModal({
                 </select>
               </div>
 
-              {/* Date Picker */}
               <div className="w-1/2">
                 <label className="block mb-0.5 text-sm text-white">
                   Date <span className="text-red-400">*</span>
                 </label>
                 <DatePicker
-                  selected={date ? new Date(date) : null}
+                  selected={selectedDateForCalendar}
                   onChange={(date) => setDate(date.toISOString().split("T")[0])}
                   dateFormat="dd-MM-yyyy"
                   placeholderText="Select a date"
                   className="w-full px-2 py-1.5 text-sm bg-zinc-800 border rounded-md text-white focus:outline-none"
                   calendarClassName="custom-calendar"
-                  popperModifiers={[
-                    {
-                      name: "preventOverflow",
-                      options: {
-                        boundary: "viewport",
-                      },
-                    },
-                  ]}
+                  popperModifiers={[{ name: "preventOverflow", options: { boundary: "viewport" } }]}
                 />
               </div>
             </div>
-
 
             <div>
               <label className="block text-sm text-white mb-1">Select Icon</label>
@@ -175,13 +171,10 @@ export default function AddScheduleModal({
             </div>
 
             <div className="flex items-end gap-2">
-              {/* Repeat Toggle */}
               <div className="flex flex-col gap-1">
                 <label htmlFor="repeat-toggle" className="text-sm text-white mb-0.5">
                   Repeat Every Month
                 </label>
-
-                {/* ✅ This part aligns toggle + label */}
                 <div className="flex items-center gap-2">
                   <button
                     id="repeat-toggle"
@@ -197,16 +190,12 @@ export default function AddScheduleModal({
                       ${repeat ? "translate-x-5" : "translate-x-1"}`}
                     />
                   </button>
-
-                  {/* 👇 Appears inline with toggle */}
                   {repeat && (
                     <span className="text-xs text-white-400 font-medium">Select date</span>
                   )}
                 </div>
               </div>
 
-
-              {/* Repeat Until Date Picker (only shown if repeat is true) */}
               {repeat && (
                 <div className="flex-1">
                   <DatePicker
@@ -216,39 +205,30 @@ export default function AddScheduleModal({
                     placeholderText="Select end date"
                     className="w-full px-2 py-1.5 text-sm bg-zinc-800 border rounded-md text-white focus:outline-none"
                     calendarClassName="custom-calendar"
-                    popperModifiers={[
-                      {
-                        name: "preventOverflow",
-                        options: {
-                          boundary: "viewport",
-                        },
-                      },
-                    ]}
+                    popperModifiers={[{ name: "preventOverflow", options: { boundary: "viewport" } }]}
                   />
                 </div>
               )}
             </div>
 
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="w-1/2 bg-green-500 hover:bg-yellow-600 text-black font-semibold py-2 rounded-md"
+              >
+                {isEditMode ? 'Save Changes' : 'Add Item'}
+              </button>
 
-<div className="flex gap-2">
-  <button
-    type="submit"
-    className="w-1/2 bg-green-500 hover:bg-yellow-600 text-black font-semibold py-2 rounded-md"
-  >
-    {isEditMode ? 'Save Changes' : 'Add Item'}
-  </button>
-
-  {isEditMode && (
-    <button
-      type="button"
-      className="w-1/2 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded-md"
-      onClick={() => setShowDeleteConfirm(true)}
-    >
-      Delete
-    </button>
-  )}
-</div>
-
+              {isEditMode && (
+                <button
+                  type="button"
+                  className="w-1/2 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded-md"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  Delete
+                </button>
+              )}
+            </div>
           </form>
 
           {showDeleteConfirm && (
