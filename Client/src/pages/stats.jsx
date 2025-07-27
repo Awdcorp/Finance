@@ -2,6 +2,8 @@ import React, { useState } from "react"
 import BottomNav from "../components/BottomNav"
 import SidebarNav from "../components/SidebarNav"
 import useFinance from "../state/finance"
+import getItemsForMonth from "../utils/getItemsForMonth";
+import BalanceCard from "../components/BalanceCard";
 import {
   PieChart, Pie, Cell, Tooltip,
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer
@@ -20,17 +22,19 @@ export default function Stats() {
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
   const [selectedMonth, setSelectedMonth] = useState(new Date())
 
-  const filteredItems = scheduleGroups.flatMap((group, groupIndex) =>
-    group.items
-      .filter((item) => {
-        const date = new Date(item.date)
-        return (
-          date.getMonth() === selectedMonth.getMonth() &&
-          date.getFullYear() === selectedMonth.getFullYear()
+  const rawItems = getItemsForMonth(scheduleGroups, selectedMonth);
+
+    const filteredItems = rawItems.map((item) => {
+    // Match this item to its group index using the original item (by title & amount)
+    const groupIndex = scheduleGroups.findIndex(group =>
+        group.items.some(original =>
+        original.title === item.title &&
+        original.amount === item.amount &&
+        new Date(original.date).getTime() === new Date(item.originalDate || item.date).getTime()
         )
-      })
-      .map((item) => ({ ...item, groupIndex }))
-  )
+    );
+    return { ...item, groupIndex };
+    });
 
   const incomeItems = filteredItems.filter((i) => i.amount > 0)
   const expenseItems = filteredItems.filter((i) => i.amount < 0)
@@ -104,22 +108,9 @@ export default function Stats() {
 
           {/* Summary Cards */}
 <div className="flex justify-center">
-  <div className="grid grid-cols-2 gap-4 mb-4 max-w-md w-full">
-    {/* Expenses Card */}
-    <div className="bg-red-500/20 text-red-400 p-4 rounded-xl text-center hover:bg-red-500/30 transition">
-      <div className="text-sm font-medium flex justify-center gap-2 items-center">
-        <span>Expenses</span> <ArrowUpRight size={16} />
-      </div>
-      <div className="text-2xl font-bold mt-1">₹ {Math.abs(expenseTotal).toFixed(2)}</div>
-    </div>
-
-    {/* Income Card */}
-    <div className="bg-green-500/20 text-green-400 p-4 rounded-xl text-center hover:bg-green-500/30 transition">
-      <div className="text-sm font-medium flex justify-center gap-2 items-center">
-        <span>Income</span> <ArrowDownRight size={16} />
-      </div>
-      <div className="text-2xl font-bold mt-1">₹ {incomeTotal.toFixed(2)}</div>
-    </div>
+  <div className="flex justify-center lg:justify-start gap-4 mt-2 px-4 max-w-md w-full">
+    <BalanceCard label="Income" amount={incomeTotal} type="income" />
+    <BalanceCard label="Expenses" amount={Math.abs(expenseTotal)} type="expense" />
   </div>
 </div>
 
