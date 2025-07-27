@@ -143,7 +143,7 @@ export default function CalendarGrid({ items = [], selectedDate }) {
                 "aspect-square rounded-md p-[2px] text-xs flex flex-col items-center justify-start overflow-hidden";
 
               const highlightClass = isToday
-                ? "bg-yellow-500 text-black font-bold"
+                ? "bg-neutral-700 text-white font-bold ring-2 ring-yellow-500"
                 : isWeekend
                 ? isCurrentMonth
                   ? "bg-neutral-700 text-blue-300"
@@ -157,7 +157,7 @@ export default function CalendarGrid({ items = [], selectedDate }) {
                   <div className="font-semibold text-sm mb-[1px]">{day}</div>
 
                   {hasIncome && (
-                    <div className="text-[11px] text-green-400 font-semibold leading-none">
+                    <div className="text-[9px] text-green-400 font-semibold leading-none">
                       {totals.income >= 1000
                         ? `${(totals.income / 1000).toFixed(1)}K`
                         : totals.income.toLocaleString()}
@@ -165,7 +165,7 @@ export default function CalendarGrid({ items = [], selectedDate }) {
                   )}
 
                   {hasExpense && (
-                    <div className="text-[11px] text-red-400 font-semibold leading-none">
+                    <div className="text-[9px] text-red-400 font-semibold leading-none">
                       {totals.expense >= 1000
                         ? `${(totals.expense / 1000).toFixed(1)}K`
                         : totals.expense.toLocaleString()}

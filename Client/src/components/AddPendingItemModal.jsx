@@ -120,9 +120,13 @@ export default function AddPendingItemModal({
               <div className="w-1/3">
                 <label className="block mb-0.5 text-sm">Amount (₹) *</label>
                 <input
-                  type="number"
+                  type="text"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (/^-?\d*\.?\d*$/.test(value)) setAmount(value);
+                  }}
+                  inputMode="decimal"
                   className="w-full px-2 py-1.5 bg-zinc-800 rounded-md border border-zinc-600"
                 />
               </div>
@@ -156,6 +160,14 @@ export default function AddPendingItemModal({
                   placeholderText="Select a date"
                   className="w-full px-2 py-1.5 text-sm bg-zinc-800 border rounded-md text-white focus:outline-none"
                   calendarClassName="custom-calendar"
+                  popperModifiers={[
+                    {
+                      name: "preventOverflow",
+                      options: {
+                        boundary: "viewport",
+                      },
+                    },
+                  ]}
                 />
               </div>
             </div>
@@ -296,6 +308,14 @@ export default function AddPendingItemModal({
                     placeholderText="Select end date"
                     className="w-full px-2 py-1.5 text-sm bg-zinc-800 border rounded-md text-white focus:outline-none"
                     calendarClassName="custom-calendar"
+                    popperModifiers={[
+                      {
+                        name: "preventOverflow",
+                        options: {
+                          boundary: "viewport",
+                        },
+                      },
+                    ]}
                   />
                 </div>
               )}
