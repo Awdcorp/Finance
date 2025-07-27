@@ -156,25 +156,27 @@ export default function CalendarGrid({ items = [], selectedDate }) {
                 <div key={index} className={`${baseClass} ${highlightClass}`}>
                   <div className="font-semibold text-sm mb-[1px]">{day}</div>
 
-                  {hasIncome && (
-                    <div className="text-[9px] text-green-400 font-semibold leading-none">
-                      {totals.income >= 1000
-                        ? `${(totals.income / 1000).toFixed(1)}K`
-                        : totals.income.toLocaleString()}
-                    </div>
-                  )}
+                {(hasIncome || hasExpense) ? (
+                  <>
+                    {hasIncome && (
+                      <div className={`${hasIncome && hasExpense ? "text-[9px]" : "text-[12px]"} text-green-400 font-semibold leading-none`}>
+                        {totals.income >= 1000
+                          ? `${(totals.income / 1000).toFixed(1)}K`
+                          : totals.income.toLocaleString()}
+                      </div>
+                    )}
 
-                  {hasExpense && (
-                    <div className="text-[9px] text-red-400 font-semibold leading-none">
-                      {totals.expense >= 1000
-                        ? `${(totals.expense / 1000).toFixed(1)}K`
-                        : totals.expense.toLocaleString()}
-                    </div>
-                  )}
-
-                  {!hasIncome && !hasExpense && (
-                    <div className="text-gray-500 text-[11px]">0</div>
-                  )}
+                    {hasExpense && (
+                      <div className={`${hasIncome && hasExpense ? "text-[9px]" : "text-[12px]"} text-red-400 font-semibold leading-none`}>
+                        {totals.expense >= 1000
+                          ? `${(totals.expense / 1000).toFixed(1)}K`
+                          : totals.expense.toLocaleString()}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-gray-500 text-[11px]">0</div>
+                )}
                 </div>
               );
             })}

@@ -6,6 +6,7 @@ import { X } from "lucide-react"
 import { categoryOptions, iconOptions } from "../constants/categories"
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
+import AmountInput from "./AmountInput"
 
 export default function AddPendingItemModal({
   isOpen,
@@ -107,7 +108,7 @@ export default function AddPendingItemModal({
           {/* Form */}
           <form className="space-y-3 text-sm text-white">
             <div className="flex gap-2">
-              <div className="w-2/3">
+              <div className="w-1/2">
                 <label className="block mb-0.5 text-sm">Title *</label>
                 <input
                   type="text"
@@ -117,17 +118,16 @@ export default function AddPendingItemModal({
                 />
               </div>
 
-              <div className="w-1/3">
-                <label className="block mb-0.5 text-sm">Amount (₹) *</label>
-                <input
-                  type="text"
+              <div className="w-1/2">
+                <AmountInput
                   value={amount}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (/^-?\d*\.?\d*$/.test(value)) setAmount(value);
+                  setValue={setAmount}
+                  isPositive={amount >= 0}
+                  setIsPositive={(flag) => {
+                    const clean = amount.replace(/-/g, "")
+                    setAmount(flag ? clean : `-${clean}`)
                   }}
-                  inputMode="decimal"
-                  className="w-full px-2 py-1.5 bg-zinc-800 rounded-md border border-zinc-600"
+                  label="Amount (₹) *"
                 />
               </div>
             </div>

@@ -4,6 +4,7 @@ import getItemsForMonth from "../utils/getItemsForMonth"
 import getProjectedBalance from "../utils/getProjectedBalance" // ✅ added
 import { toast } from "react-hot-toast"
 import { Pencil, IndianRupee } from "lucide-react"
+import AmountInput from "./AmountInput"
 
 export default function TotalBalance({ selectedDate }) {
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
@@ -11,6 +12,7 @@ export default function TotalBalance({ selectedDate }) {
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [actualBalance, setActualBalance] = useState("")
+  const [isPositive, setIsPositive] = useState(true)
 
   // Get current month's items
   const items = getItemsForMonth(scheduleGroups, selectedDate)
@@ -28,13 +30,13 @@ export default function TotalBalance({ selectedDate }) {
   const projectedBalance = getProjectedBalance(scheduleGroups, selectedDate) // ✅ new
 
   const handleUpdateBalance = () => {
-    const actual = parseFloat(actualBalance.trim())
-    if (isNaN(actual) || actual <= 0) {
+    const parsed = parseFloat(isPositive ? actualBalance : `-${actualBalance}`)
+    if (isNaN(parsed)) {
       toast.error("Please enter a valid balance")
       return
     }
 
-    const diff = actual - total
+    const diff = parsed - total
     if (diff === 0) {
       toast("Balance already matches")
       setIsModalOpen(false)
@@ -110,19 +112,17 @@ export default function TotalBalance({ selectedDate }) {
       {/* Modal (untouched) */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
-          <div className="bg-neutral-900 text-white p-6 rounded-xl w-[300px] z-50">
+          <div className="bg-neutral-900 text-white px-6 pt-5 pb-4 rounded-xl w-[320px] space-y-4 shadow-xl">
             <h2 className="text-lg font-semibold mb-2">Update Actual Balance</h2>
             <div className="text-sm text-gray-400 mb-1">
               Current Balance: {total.toFixed(2)} €
             </div>
-            <input
-              type="number"
-              step="0.01"
-              value={actualBalance}
-              onChange={(e) => setActualBalance(e.target.value)}
-              placeholder="Enter actual balance"
-              className="w-full p-2 rounded bg-neutral-800 text-white mb-4"
-            />
+              <AmountInput
+                value={actualBalance}
+                setValue={setActualBalance}
+                isPositive={isPositive}
+                setIsPositive={setIsPositive}
+              />
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setIsModalOpen(false)}

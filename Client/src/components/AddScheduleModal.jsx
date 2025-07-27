@@ -7,6 +7,7 @@ import ConfirmDialog from './ConfirmDialog'
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
 import { categoryOptions, iconOptions } from "../constants/categories"
+import AmountInput from "./AmountInput"
 
 export default function AddScheduleModal({
   isOpen,
@@ -25,6 +26,7 @@ export default function AddScheduleModal({
   const [repeat, setRepeat] = useState(true)
   const [repeatEndDate, setRepeatEndDate] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isPositive, setIsPositive] = useState(true)
 
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
   const groupTitle = scheduleGroups[groupIndex]?.title || 'Untitled'
@@ -33,7 +35,9 @@ export default function AddScheduleModal({
   useEffect(() => {
     if (defaultValues) {
       setTitle(defaultValues.title || '')
-      setAmount(defaultValues.amount || '')
+      const rawAmount = parseFloat(defaultValues.amount)
+      setIsPositive(rawAmount >= 0)                            // ✅ Controls toggle
+      setAmount(Math.abs(rawAmount).toString() || '') 
       setDate(defaultValues.date || '')
       setCategory(defaultValues.category || '')
       setIcon(defaultValues.icon || 'ReceiptIndianRupee')
@@ -49,9 +53,11 @@ export default function AddScheduleModal({
       return
     }
 
+    const parsedAmount = parseFloat(isPositive ? amount : "-" + amount)
+
     const newItem = {
       title,
-      amount: parseFloat(amount),
+      amount: parsedAmount,
       date,
       icon,
       category,
@@ -87,7 +93,7 @@ export default function AddScheduleModal({
           <form onSubmit={handleSubmit} className="space-y-3 text-sm text-white">
             <div className="flex gap-2">
               {/* Title Field */}
-              <div className="w-2/3">
+              <div className="w-1/2">
                 <label className="block mb-0.5 text-sm">Title *</label>
                 <input
                   type="text"
@@ -99,22 +105,16 @@ export default function AddScheduleModal({
               </div>
 
               {/* Amount Field */}
-              <div className="w-1/3">
-                <label className="block mb-0.5 text-sm">Amount (₹) *</label>
-                <input
-                  type="text"
+              <div className="w-1/2">
+                <AmountInput
                   value={amount}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (/^-?\d*\.?\d*$/.test(value)) setAmount(value);
-                  }}
-                  inputMode="decimal"
-                  className="w-full px-2 py-1.5 text-sm bg-zinc-800 rounded-md border border-zinc-600"
-                  placeholder="-1200"
+                  setValue={setAmount}
+                  isPositive={isPositive}
+                  setIsPositive={setIsPositive}
+                  label="Amount (₹) *"
                 />
               </div>
             </div>
-
 
             <div className="flex gap-2">
               {/* Category Dropdown */}
@@ -230,22 +230,25 @@ export default function AddScheduleModal({
             </div>
 
 
-            <button
-              type="submit"
-              className="w-full bg-green-500 hover:bg-yellow-600 text-black font-semibold py-2 rounded-md"
-            >
-              {isEditMode ? 'Save Changes' : 'Add Item'}
-            </button>
+<div className="flex gap-2">
+  <button
+    type="submit"
+    className="w-1/2 bg-green-500 hover:bg-yellow-600 text-black font-semibold py-2 rounded-md"
+  >
+    {isEditMode ? 'Save Changes' : 'Add Item'}
+  </button>
 
-            {isEditMode && (
-              <button
-                type="button"
-                className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded-md"
-                onClick={() => setShowDeleteConfirm(true)}
-              >
-                Delete Item
-              </button>
-            )}
+  {isEditMode && (
+    <button
+      type="button"
+      className="w-1/2 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded-md"
+      onClick={() => setShowDeleteConfirm(true)}
+    >
+      Delete
+    </button>
+  )}
+</div>
+
           </form>
 
           {showDeleteConfirm && (
