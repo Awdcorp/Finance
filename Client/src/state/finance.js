@@ -23,6 +23,10 @@ const useFinance = create((set, get) => ({
   scheduleGroups: [],
   pendingGroups: [],
 
+  // 🟢 NEW: Sync status state
+  syncStatus: "idle", // syncing | synced | offline | error
+  setSyncStatus: (status) => set({ syncStatus: status }),
+
   syncDashboard: () => {
     const { currentDashboard, dashboardData } = get();
     const data = dashboardData[currentDashboard] || {};
@@ -54,6 +58,18 @@ const useFinance = create((set, get) => ({
 
   loadUserData: async (userId) => {
     const userDocRef = doc(db, "users", userId);
+
+    if (!navigator.onLine) {
+      console.warn("🚫 No internet. Loading from local backup...");
+      get().setSyncStatus("offline");
+      const success = get().loadBackupFromLocalStorage();
+      if (success) {
+        set({ userId });
+      } else {
+        console.error("❌ Offline and no usable local backup found.");
+      }
+      return;
+    }
 
     try {
       const snapshot = await getDoc(userDocRef);
@@ -89,9 +105,11 @@ const useFinance = create((set, get) => ({
       });
 
       get().syncDashboard();
+      get().setSyncStatus("synced");
 
     } catch (e) {
       console.warn("⚠️ Firestore load failed, trying local backup...", e);
+      get().setSyncStatus("error");
       const success = get().loadBackupFromLocalStorage();
       if (success) {
         set({ userId });
@@ -101,20 +119,36 @@ const useFinance = create((set, get) => ({
     }
   },
 
-  // 🔄 Save to Firestore and backup locally
+  // 🔄 Save to Firestore and backup locally with sync status
   saveUserData: () => {
-    const { userId, dashboards, currentDashboard, dashboardData } = get();
-    if (!userId) return;
-    const userRef = doc(db, "users", userId);
+    const {
+      userId,
+      dashboards,
+      currentDashboard,
+      dashboardData,
+      setSyncStatus,
+    } = get();
 
+    if (!userId) return;
+
+    const userRef = doc(db, "users", userId);
     const fullData = { dashboards, currentDashboard, dashboardData };
 
-    setDoc(userRef, fullData);
-
     try {
-      localStorage.setItem("financeBackup", JSON.stringify(fullData));
+      setSyncStatus("syncing");
+
+      setDoc(userRef, fullData)
+        .then(() => {
+          localStorage.setItem("financeBackup", JSON.stringify(fullData));
+          setSyncStatus("synced");
+        })
+        .catch((e) => {
+          console.error("❌ Firestore sync failed:", e);
+          setSyncStatus("error");
+        });
+
     } catch (e) {
-      console.warn("⚠️ Failed to backup locally:", e);
+      setSyncStatus("error");
     }
   },
 

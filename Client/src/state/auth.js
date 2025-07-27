@@ -1,8 +1,15 @@
-import { create } from "zustand"
+// ✅ src/state/auth.js
+import { create } from "zustand";
 
 const useAuth = create((set) => ({
-  currentUser: null, // user info from Google
-  setCurrentUser: (user) => set({ currentUser: user }),
-}))
+  // 🔐 Stores Firebase user object
+  currentUser: null,
 
-export default useAuth
+  // 🔄 Set user (Google or Email)
+  setCurrentUser: (user) => set({ currentUser: user }),
+
+  // 🚪 Clear user on logout
+  clearUser: () => set({ currentUser: null }),
+}));
+
+export default useAuth;

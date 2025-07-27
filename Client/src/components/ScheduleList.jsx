@@ -36,7 +36,7 @@ export default function ScheduleList({ items = [] }) {
   }, [])
 
   return (
-    <div className="px-4 mt-4 relative">
+    <div className="px-4 relative">
       {scheduleGroups.map((group, groupIndex) => {
         const groupItems = items.filter((item) => item.groupIndex === groupIndex)
         const totalAmount = groupItems.reduce((acc, item) => acc + item.amount, 0)

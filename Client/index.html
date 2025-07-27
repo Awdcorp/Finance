@@ -2,12 +2,29 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="https://res.cloudinary.com/dyiupjfwp/image/upload/v1747560773/banners/axakhrcckjwyw460g9mb.png" />
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- ✅ Local App Icon (favicon) -->
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+
+    <!-- ✅ Manifest for PWA support -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Font -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Viewport & Meta -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Al Rahmania Mobiles</title>
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="Track your finances easily with monthly schedules, pending transactions, and income/expense insights." />
+
+    <!-- Title -->
+    <title>Finance Tracker</title>
   </head>
-  <body>
+  <body class="bg-black text-white font-montserrat">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
