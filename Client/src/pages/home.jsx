@@ -6,7 +6,6 @@ import ScheduleList from "../components/ScheduleList";
 import BottomNav from "../components/BottomNav";
 import useFinance from "../state/finance";
 import getItemsForMonth from "../utils/getItemsForMonth";
-import getProjectedBalance from "../utils/getProjectedBalance";
 import PendingTransactionList from "../components/PendingTransactionList";
 import TextInputModal from "../components/TextInputModal"
 import PendingSummaryCard from "../components/PendingSummaryCard";
@@ -59,8 +58,6 @@ export default function Dashboard({ user }) {
     };
   }, [currentMonthItems]);
 
-  const projectedBalance = getProjectedBalance(scheduleGroups, selectedDate);
-
   return (
     <div className="min-h-screen bg-neutral-900 text-white flex flex-col lg:flex-row">
       {/* Sidebar for Desktop */}
@@ -84,14 +81,14 @@ export default function Dashboard({ user }) {
           {/* LEFT */}
           <div>
             <TotalBalance amount={totalBalance} selectedDate={selectedDate} />
-            <div className="text-center lg:text-left text-sm text-yellow-300 mt-1">
-              Projected Balance till this month: {projectedBalance.toFixed(2)} €
-            </div>
             <div className="flex justify-center lg:justify-start gap-4 mt-4 px-4">
               <BalanceCard label="Income" amount={income} type="income" />
               <BalanceCard label="Expenses" amount={Math.abs(expenses)} type="expense" />
             </div>
-            <CalendarGrid calendarData={[]} currentDate={selectedDate.getDate()} />
+            <CalendarGrid
+              items={currentMonthItems}
+              selectedDate={selectedDate}
+            />
           </div>
 
           {/* RIGHT */}

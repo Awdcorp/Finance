@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { db } from "../firebase"; // 🔁 import Firestore
+import { db } from "../firebase";
 import {
   doc,
   getDoc,
@@ -8,29 +8,21 @@ import {
 } from "firebase/firestore";
 
 const useFinance = create((set, get) => ({
-  // 🔐 Logged-in user info
   userId: null,
 
-  // 🧠 Dashboards and current view
   dashboards: ["My Budget"],
   currentDashboard: "My Budget",
 
-  // 💾 Full user data from Firestore
   dashboardData: {
     "My Budget": {
-      scheduleGroups: [
-        { title: "This Month’s Schedule", items: [] },
-      ],
-      pendingGroups: [
-        { title: "General Drafts", items: [] },
-      ],
+      scheduleGroups: [{ title: "This Month’s Schedule", items: [] }],
+      pendingGroups: [{ title: "General Drafts", items: [] }],
     },
   },
 
   scheduleGroups: [],
   pendingGroups: [],
 
-  // 🔁 Sync selected dashboard to top-level state
   syncDashboard: () => {
     const { currentDashboard, dashboardData } = get();
     const data = dashboardData[currentDashboard] || {};
@@ -40,62 +32,91 @@ const useFinance = create((set, get) => ({
     });
   },
 
-  // 🔐 Called once when user logs in
-  loadUserData: async (userId) => {
-    const userDocRef = doc(db, "users", userId);
-    const snapshot = await getDoc(userDocRef);
-
-    const initialData = {
-      dashboards: ["My Budget"],
-      currentDashboard: "My Budget",
-      dashboardData: {
-        "My Budget": {
-          scheduleGroups: [
-            { title: "This Month’s Schedule", items: [] },
-          ],
-          pendingGroups: [
-            { title: "General Drafts", items: [] },
-          ],
-        },
-      },
-    };
-
-    const userData = snapshot.exists() ? snapshot.data() : initialData;
-
-    // Listen to future changes (optional: remove if not needed)
-    onSnapshot(userDocRef, (snap) => {
-      if (snap.exists()) {
-        const newData = snap.data();
-        set({
-          dashboards: newData.dashboards,
-          currentDashboard: newData.currentDashboard,
-          dashboardData: newData.dashboardData,
-        });
-        get().syncDashboard();
-      }
-    });
-
-    set({
-      userId,
-      ...userData,
-    });
-
-    get().syncDashboard(); // pull into top-level view
+  // ✅ Fallback: Load from localStorage if online fails
+  loadBackupFromLocalStorage: () => {
+    try {
+      const cached = localStorage.getItem("financeBackup");
+      if (!cached) return false;
+      const parsed = JSON.parse(cached);
+      set({
+        dashboards: parsed.dashboards,
+        currentDashboard: parsed.currentDashboard,
+        dashboardData: parsed.dashboardData,
+      });
+      get().syncDashboard();
+      console.log("✅ Loaded dashboard data from localStorage backup.");
+      return true;
+    } catch (e) {
+      console.warn("⚠️ Failed to load local backup:", e);
+      return false;
+    }
   },
 
-  // 🔄 Save to Firestore
+  loadUserData: async (userId) => {
+    const userDocRef = doc(db, "users", userId);
+
+    try {
+      const snapshot = await getDoc(userDocRef);
+
+      const initialData = {
+        dashboards: ["My Budget"],
+        currentDashboard: "My Budget",
+        dashboardData: {
+          "My Budget": {
+            scheduleGroups: [{ title: "This Month’s Schedule", items: [] }],
+            pendingGroups: [{ title: "General Drafts", items: [] }],
+          },
+        },
+      };
+
+      const userData = snapshot.exists() ? snapshot.data() : initialData;
+
+      onSnapshot(userDocRef, (snap) => {
+        if (snap.exists()) {
+          const newData = snap.data();
+          set({
+            dashboards: newData.dashboards,
+            currentDashboard: newData.currentDashboard,
+            dashboardData: newData.dashboardData,
+          });
+          get().syncDashboard();
+        }
+      });
+
+      set({
+        userId,
+        ...userData,
+      });
+
+      get().syncDashboard();
+
+    } catch (e) {
+      console.warn("⚠️ Firestore load failed, trying local backup...", e);
+      const success = get().loadBackupFromLocalStorage();
+      if (success) {
+        set({ userId });
+      } else {
+        console.error("❌ No usable data available.");
+      }
+    }
+  },
+
+  // 🔄 Save to Firestore and backup locally
   saveUserData: () => {
     const { userId, dashboards, currentDashboard, dashboardData } = get();
     if (!userId) return;
     const userRef = doc(db, "users", userId);
-    setDoc(userRef, {
-      dashboards,
-      currentDashboard,
-      dashboardData,
-    });
-  },
 
-  // ✅ All your existing mutation methods — just call saveUserData() after set()
+    const fullData = { dashboards, currentDashboard, dashboardData };
+
+    setDoc(userRef, fullData);
+
+    try {
+      localStorage.setItem("financeBackup", JSON.stringify(fullData));
+    } catch (e) {
+      console.warn("⚠️ Failed to backup locally:", e);
+    }
+  },
 
   setCurrentDashboard: (name) => {
     set({ currentDashboard: name }, false, "setCurrentDashboard");
@@ -111,12 +132,8 @@ const useFinance = create((set, get) => ({
     const newData = {
       ...dashboardData,
       [name]: {
-        scheduleGroups: [
-          { title: "This Month’s Schedule", items: [] },
-        ],
-        pendingGroups: [
-          { title: "General Drafts", items: [] },
-        ],
+        scheduleGroups: [{ title: "This Month’s Schedule", items: [] }],
+        pendingGroups: [{ title: "General Drafts", items: [] }],
       },
     };
 

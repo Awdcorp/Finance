@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, IndianRupee } from "lucide-react";
 
 export default function BalanceCard({ label, amount, type }) {
   const isIncome = type === "income";
@@ -17,10 +17,14 @@ export default function BalanceCard({ label, amount, type }) {
         <span className={iconColor}>{label}</span>
       </div>
 
-      {/* Amount */}
-      <div className="text-2xl font-semibold text-white mt-1">
-        {amount.toFixed(2)} €
-      </div>
+      {/* Amount with ₹ icon */}
+<div className="flex-1 flex items-center justify-center">
+  <div className="text-2xl font-semibold text-white flex items-center gap-1">
+    <IndianRupee size={14} className="-mt-[1px]" />
+    {amount.toFixed(2)}
+  </div>
+</div>
+
     </div>
   );
 }

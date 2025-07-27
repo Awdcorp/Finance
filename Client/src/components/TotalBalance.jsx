@@ -1,8 +1,9 @@
 import React, { useState } from "react"
 import useFinance from "../state/finance"
 import getItemsForMonth from "../utils/getItemsForMonth"
+import getProjectedBalance from "../utils/getProjectedBalance" // ✅ added
 import { toast } from "react-hot-toast"
-import { Pencil } from "lucide-react"
+import { Pencil, IndianRupee } from "lucide-react"
 
 export default function TotalBalance({ selectedDate }) {
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
@@ -24,12 +25,11 @@ export default function TotalBalance({ selectedDate }) {
 
   const total = income + expenses
 
+  const projectedBalance = getProjectedBalance(scheduleGroups, selectedDate) // ✅ new
+
   const handleUpdateBalance = () => {
     const actual = parseFloat(actualBalance.trim())
-    console.log("User entered balance:", actual)
-
     if (isNaN(actual) || actual <= 0) {
-      console.warn("Invalid balance entered")
       toast.error("Please enter a valid balance")
       return
     }
@@ -57,44 +57,63 @@ export default function TotalBalance({ selectedDate }) {
     const targetGroupIndex = matchingGroupIndex !== -1 ? matchingGroupIndex : 0
 
     try {
-      // ✅ Correct order: groupIndex first, then item object
       addItemToGroup(targetGroupIndex, {
         title: "Balance Adjustment",
         amount: diff,
-        date: new Date().toISOString().split("T")[0], // Format: yyyy-mm-dd
+        date: selectedDate.toISOString().split("T")[0],
         category: "Miscellaneous",
         notes: "Auto-added from Update Balance"
       })
-
-      console.log("✅ Adjustment added")
       toast.success("Balance adjustment added")
       setIsModalOpen(false)
       setActualBalance("")
     } catch (e) {
-      console.error("🔥 Failed to add item:", e)
       toast.error("Failed to update balance")
     }
   }
-
   return (
-    <div className="text-center relative">
-      <div className="text-sm text-gray-400">Total Balance</div>
-      <div className="text-4xl font-bold text-white flex justify-center items-center gap-2">
-        {total.toFixed(2)} €
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="text-yellow-400 hover:scale-110 transition"
+    <div className="w-full px-4">
+      <div className="bg-neutral-800 rounded-xl p-4 shadow-md text-center space-y-3">
+        {/* Label */}
+        <div className="text-sm text-gray-400 tracking-wide uppercase">
+          Total Balance
+        </div>
+
+        {/* Balance Value with Edit */}
+        <div className="flex items-center justify-center gap-2 text-white">
+          <IndianRupee size={30} />
+          <span className="text-4xl font-extrabold">{total.toFixed(2)}</span>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="text-yellow-400 hover:scale-110 transition"
+            title="Adjust Balance"
+          >
+            <Pencil className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Projected Balance */}
+        <div
+          className={`text-sm font-medium ${
+            projectedBalance < 0 ? "text-red-400" : "text-green-300"
+          }`}
         >
-          <Pencil className="w-4 h-4" />
-        </button>
+          Projected till{" "}
+          {selectedDate.toLocaleString("default", {
+            month: "long",
+            year: "numeric",
+          })}
+          : <IndianRupee size={14} className="inline-block" /> {projectedBalance.toFixed(2)}
+        </div>
       </div>
 
+      {/* Modal (untouched) */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
           <div className="bg-neutral-900 text-white p-6 rounded-xl w-[300px] z-50">
             <h2 className="text-lg font-semibold mb-2">Update Actual Balance</h2>
             <div className="text-sm text-gray-400 mb-1">
-              Projected Balance: {total.toFixed(2)} €
+              Current Balance: {total.toFixed(2)} €
             </div>
             <input
               type="number"
