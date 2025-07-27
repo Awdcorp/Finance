@@ -76,7 +76,7 @@ export default function Dashboard({ user }) {
         </div>
 
         {/* Month Selector */}
-        <div className="flex justify-between items-center text-white px-2 mt-2">
+        <div className="flex justify-between items-center text-white px-2">
           <button onClick={() => handleMonthChange(-1)} className="text-2xl">←</button>
           <span className="text-lg font-semibold">
             {selectedDate.toLocaleString("default", { month: "long", year: "numeric" })}

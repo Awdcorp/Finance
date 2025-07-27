@@ -27,6 +27,9 @@ const useFinance = create((set, get) => ({
   syncStatus: "idle", // syncing | synced | offline | error
   setSyncStatus: (status) => set({ syncStatus: status }),
 
+  lastLoaded: 0, // 🕒 Time when Firestore was last loaded
+  setLastLoaded: (ts) => set({ lastLoaded: ts }),
+
   syncDashboard: () => {
     const { currentDashboard, dashboardData } = get();
     const data = dashboardData[currentDashboard] || {};
@@ -46,6 +49,7 @@ const useFinance = create((set, get) => ({
         dashboards: parsed.dashboards,
         currentDashboard: parsed.currentDashboard,
         dashboardData: parsed.dashboardData,
+        lastLoaded: parsed.lastUpdated || Date.now(),
       });
       get().syncDashboard();
       console.log("✅ Loaded dashboard data from localStorage backup.");
@@ -63,11 +67,8 @@ const useFinance = create((set, get) => ({
       console.warn("🚫 No internet. Loading from local backup...");
       get().setSyncStatus("offline");
       const success = get().loadBackupFromLocalStorage();
-      if (success) {
-        set({ userId });
-      } else {
-        console.error("❌ Offline and no usable local backup found.");
-      }
+      if (success) set({ userId });
+      else console.error("❌ Offline and no usable local backup found.");
       return;
     }
 
@@ -83,9 +84,11 @@ const useFinance = create((set, get) => ({
             pendingGroups: [{ title: "General Drafts", items: [] }],
           },
         },
+        lastUpdated: Date.now(),
       };
 
       const userData = snapshot.exists() ? snapshot.data() : initialData;
+      const loadedTime = userData.lastUpdated || Date.now();
 
       onSnapshot(userDocRef, (snap) => {
         if (snap.exists()) {
@@ -101,56 +104,126 @@ const useFinance = create((set, get) => ({
 
       set({
         userId,
-        ...userData,
+        dashboards: userData.dashboards,
+        currentDashboard: userData.currentDashboard,
+        dashboardData: userData.dashboardData,
       });
 
       get().syncDashboard();
       get().setSyncStatus("synced");
+      get().setLastLoaded(loadedTime);
 
     } catch (e) {
       console.warn("⚠️ Firestore load failed, trying local backup...", e);
       get().setSyncStatus("error");
       const success = get().loadBackupFromLocalStorage();
-      if (success) {
-        set({ userId });
+      if (success) set({ userId });
+      else console.error("❌ No usable data available.");
+    }
+  },
+
+saveUserData: async () => {
+  const {
+    userId,
+    dashboards: localDashboards,
+    currentDashboard,
+    dashboardData: localData,
+    setSyncStatus,
+    lastLoaded,
+    setLastLoaded,
+  } = get();
+
+  if (!userId) return;
+
+  const userRef = doc(db, "users", userId);
+
+  try {
+    setSyncStatus("syncing");
+
+    const currentSnapshot = await getDoc(userRef);
+    let mergedDashboards = [...localDashboards];
+    let mergedData = { ...localData };
+
+    if (currentSnapshot.exists()) {
+      const server = currentSnapshot.data();
+      const serverLastUpdated = server.lastUpdated || 0;
+
+      const serverDashboards = server.dashboards || [];
+      const serverData = server.dashboardData || {};
+
+      if (serverLastUpdated > lastLoaded) {
+        console.warn("⚠️ Firestore is newer. Performing merge...");
+
+        // 1. Merge dashboards list
+        mergedDashboards = Array.from(
+          new Set([...serverDashboards, ...localDashboards])
+        );
+
+        // 2. Merge dashboardData
+        mergedData = { ...serverData };
+        for (const name of mergedDashboards) {
+          const localDash = localData[name] || {};
+          const serverDash = serverData[name] || {
+            scheduleGroups: [],
+            pendingGroups: [],
+          };
+
+          // Merge groups
+          const mergeGroups = (localGroups, serverGroups) => {
+            const result = [...serverGroups];
+            for (const group of localGroups) {
+              const existing = result.find((g) => g.title === group.title);
+              if (!existing) {
+                result.push(group);
+              } else {
+                // Merge items by title
+                const newItems = group.items.filter(
+                  (item) =>
+                    !existing.items.some(
+                      (i) => i.title === item.title && i.amount === item.amount
+                    )
+                );
+                existing.items = [...existing.items, ...newItems];
+              }
+            }
+            return result;
+          };
+
+          mergedData[name] = {
+            scheduleGroups: mergeGroups(
+              localDash.scheduleGroups || [],
+              serverDash.scheduleGroups || []
+            ),
+            pendingGroups: mergeGroups(
+              localDash.pendingGroups || [],
+              serverDash.pendingGroups || []
+            ),
+          };
+        }
       } else {
-        console.error("❌ No usable data available.");
+        mergedDashboards = [...localDashboards];
+        mergedData = { ...localData };
       }
     }
-  },
 
-  // 🔄 Save to Firestore and backup locally with sync status
-  saveUserData: () => {
-    const {
-      userId,
-      dashboards,
+    const finalData = {
+      dashboards: mergedDashboards,
       currentDashboard,
-      dashboardData,
-      setSyncStatus,
-    } = get();
+      dashboardData: mergedData,
+      lastUpdated: Date.now(),
+    };
 
-    if (!userId) return;
+    await setDoc(userRef, finalData);
+    localStorage.setItem("financeBackup", JSON.stringify(finalData));
+    setSyncStatus("synced");
+    setLastLoaded(finalData.lastUpdated);
+    console.log("✅ Data saved with merge (if needed).");
 
-    const userRef = doc(db, "users", userId);
-    const fullData = { dashboards, currentDashboard, dashboardData };
-
-    try {
-      setSyncStatus("syncing");
-
-      setDoc(userRef, fullData)
-        .then(() => {
-          localStorage.setItem("financeBackup", JSON.stringify(fullData));
-          setSyncStatus("synced");
-        })
-        .catch((e) => {
-          console.error("❌ Firestore sync failed:", e);
-          setSyncStatus("error");
-        });
-
-    } catch (e) {
-      setSyncStatus("error");
-    }
-  },
+  } catch (e) {
+    console.error("❌ Merge sync failed:", e);
+    setSyncStatus("error");
+  }
+},
 
   setCurrentDashboard: (name) => {
     set({ currentDashboard: name }, false, "setCurrentDashboard");

@@ -100,10 +100,9 @@ export default function TotalBalance({ selectedDate }) {
             projectedBalance < 0 ? "text-red-400" : "text-green-300"
           }`}
         >
-          Projected till{" "}
+          Projected balance{" "}
           {selectedDate.toLocaleString("default", {
-            month: "long",
-            year: "numeric",
+            month: "short",
           })}
           : <IndianRupee size={14} className="inline-block" /> {projectedBalance.toFixed(2)}
         </div>

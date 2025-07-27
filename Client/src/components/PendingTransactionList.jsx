@@ -139,7 +139,20 @@ export default function PendingGroupList() {
                     </div>
                   </div>
                   <div className="text-right space-y-1">
-                    <div className="text-xs text-gray-400">Unscheduled</div>
+                    <div className="text-xs text-gray-400">
+                      Unscheduled
+                      {item.date && (
+                        <>
+                          {" • "}
+                          {new Date(item.date).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </>
+                      )}
+                    </div>
+
                     <div
                       className={`text-sm font-semibold px-2 py-1 rounded-md inline-flex items-center ${
                         item.amount < 0

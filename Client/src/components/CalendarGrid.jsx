@@ -159,7 +159,7 @@ export default function CalendarGrid({ items = [], selectedDate }) {
                 {(hasIncome || hasExpense) ? (
                   <>
                     {hasIncome && (
-                      <div className={`${hasIncome && hasExpense ? "text-[9px]" : "text-[12px]"} text-green-400 font-semibold leading-none`}>
+                      <div className={`${hasIncome && hasExpense ? "text-[7px]" : "text-[12px]"} text-green-400 font-semibold leading-none`}>
                         {totals.income >= 1000
                           ? `${(totals.income / 1000).toFixed(1)}K`
                           : totals.income.toLocaleString()}
@@ -167,7 +167,7 @@ export default function CalendarGrid({ items = [], selectedDate }) {
                     )}
 
                     {hasExpense && (
-                      <div className={`${hasIncome && hasExpense ? "text-[9px]" : "text-[12px]"} text-red-400 font-semibold leading-none`}>
+                      <div className={`${hasIncome && hasExpense ? "text-[7px]" : "text-[12px]"} text-red-400 font-semibold leading-none`}>
                         {totals.expense >= 1000
                           ? `${(totals.expense / 1000).toFixed(1)}K`
                           : totals.expense.toLocaleString()}
