@@ -1,29 +1,29 @@
-import { create } from "zustand";
-import { db } from "../firebase";
-import {
-  doc,
-  getDoc,
-  setDoc,
-  onSnapshot,
-} from "firebase/firestore";
+// ✅ Zustand store for Finance Tracker — unified structure with tags, versioning, shared support
+
+import { create } from "zustand"
+import { db } from "../firebase"
+import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore"
+import { nanoid } from "nanoid"
+
+const DEFAULT_DASHBOARD = { id: "default", name: "My Budget" }
 
 const useFinance = create((set, get) => ({
   userId: null,
 
-  dashboards: ["My Budget"],
-  currentDashboard: "My Budget",
+  dashboards: [DEFAULT_DASHBOARD],
+  currentDashboardId: "default",
 
   dashboardData: {
-    "My Budget": {
-      scheduleGroups: [{ title: "This Month’s Schedule", items: [] }],
-      pendingGroups: [{ title: "General Drafts", items: [] }],
+    default: {
+      scheduleGroups: {},
       lastModified: Date.now(),
+      sharedWith: [],
     },
   },
 
-  scheduleGroups: [],
-  pendingGroups: [],
+  version: 1,
 
+  scheduleGroups: {},
   syncStatus: "idle",
   setSyncStatus: (status) => set({ syncStatus: status }),
 
@@ -31,355 +31,265 @@ const useFinance = create((set, get) => ({
   setLastLoaded: (ts) => set({ lastLoaded: ts }),
 
   syncDashboard: () => {
-    const { currentDashboard, dashboardData } = get();
-    const { scheduleGroups = [], pendingGroups = [] } = dashboardData[currentDashboard] || {};
-    set({ scheduleGroups, pendingGroups });
+    const { currentDashboardId, dashboardData } = get()
+    const current = dashboardData?.[currentDashboardId]
+    const scheduleGroups = current?.scheduleGroups || {}
+    set({ scheduleGroups })
+  },
+
+  loadUserData: async (userId) => {
+    const userDocRef = doc(db, "users", userId)
+    const fallback = {
+      dashboards: [DEFAULT_DASHBOARD],
+      currentDashboardId: "default",
+      dashboardData: {
+        default: {
+          scheduleGroups: {},
+          lastModified: Date.now(),
+          sharedWith: [],
+        },
+      },
+      version: 1,
+      lastUpdated: Date.now(),
+    }
+
+    if (!navigator.onLine) {
+      const success = get().loadBackupFromLocalStorage()
+      if (success) set({ userId })
+      return
+    }
+
+    try {
+      const snap = await getDoc(userDocRef)
+      const data = snap.exists() ? snap.data() : fallback
+
+      // ✅ Protect against missing dashboards
+      if (!data.dashboards || data.dashboards.length === 0) {
+        data.dashboards = [DEFAULT_DASHBOARD]
+        data.currentDashboardId = "default"
+        data.dashboardData = { default: fallback.dashboardData.default }
+      }
+
+      onSnapshot(userDocRef, (snap) => {
+        if (snap.exists()) {
+          const d = snap.data()
+          set({
+            dashboards: d.dashboards,
+            currentDashboardId: d.currentDashboardId,
+            dashboardData: d.dashboardData,
+          })
+          get().syncDashboard()
+        }
+      })
+
+      set({
+        userId,
+        dashboards: data.dashboards,
+        currentDashboardId: data.currentDashboardId,
+        dashboardData: data.dashboardData,
+      })
+      get().syncDashboard()
+      get().setLastLoaded(data.lastUpdated)
+    } catch (e) {
+      get().loadBackupFromLocalStorage()
+    }
   },
 
   loadBackupFromLocalStorage: () => {
     try {
-      const cached = localStorage.getItem("financeBackup");
-      if (!cached) return false;
-      const parsed = JSON.parse(cached);
+      const cached = JSON.parse(localStorage.getItem("financeBackup"))
+      if (!cached) return false
       set({
-        dashboards: parsed.dashboards,
-        currentDashboard: parsed.currentDashboard,
-        dashboardData: parsed.dashboardData,
-        lastLoaded: parsed.lastUpdated || Date.now(),
-      });
-      get().syncDashboard();
-      console.log("✅ Loaded dashboard data from localStorage backup.");
-      return true;
-    } catch (e) {
-      console.warn("⚠️ Failed to load local backup:", e);
-      return false;
-    }
-  },
-
-  loadUserData: async (userId) => {
-    const userDocRef = doc(db, "users", userId);
-
-    // ✅ Restore initialData fallback for clean clarity
-    const initialData = {
-      dashboards: ["My Budget"],
-      currentDashboard: "My Budget",
-      dashboardData: {
-        "My Budget": {
-          scheduleGroups: [{ title: "This Month’s Schedule", items: [] }],
-          pendingGroups: [{ title: "General Drafts", items: [] }],
-          lastModified: Date.now(),
-        },
-      },
-      lastUpdated: Date.now(),
-    };
-
-    if (!navigator.onLine) {
-      console.warn("🚫 No internet. Loading from local backup...");
-      get().setSyncStatus("offline");
-      const success = get().loadBackupFromLocalStorage();
-      if (success) set({ userId });
-      else console.error("❌ Offline and no usable local backup found.");
-      return;
-    }
-
-    try {
-      const snapshot = await getDoc(userDocRef);
-      const userData = snapshot.exists() ? snapshot.data() : initialData;
-      const loadedTime = userData.lastUpdated || Date.now();
-
-      onSnapshot(userDocRef, (snap) => {
-        if (snap.exists()) {
-          const newData = snap.data();
-          set({
-            dashboards: newData.dashboards,
-            currentDashboard: newData.currentDashboard,
-            dashboardData: newData.dashboardData,
-          });
-          get().syncDashboard();
-        }
-      });
-
-      set({
-        userId,
-        dashboards: userData.dashboards,
-        currentDashboard: userData.currentDashboard,
-        dashboardData: userData.dashboardData,
-      });
-
-      get().syncDashboard();
-      get().setSyncStatus("synced");
-      get().setLastLoaded(loadedTime);
-
-    } catch (e) {
-      console.warn("⚠️ Firestore load failed, trying local backup...", e);
-      get().setSyncStatus("error");
-      const success = get().loadBackupFromLocalStorage();
-      if (success) set({ userId }); // ✅ restored missing userId set
-      else console.error("❌ No usable data available.");
+        dashboards: cached.dashboards,
+        currentDashboardId: cached.currentDashboardId,
+        dashboardData: cached.dashboardData,
+        lastLoaded: cached.lastUpdated,
+      })
+      get().syncDashboard()
+      return true
+    } catch {
+      return false
     }
   },
 
   saveUserData: async () => {
     const {
       userId,
-      dashboards: localDashboards,
-      currentDashboard,
-      dashboardData: localData,
+      dashboards,
+      currentDashboardId,
+      dashboardData,
       setSyncStatus,
       lastLoaded,
       setLastLoaded,
-    } = get();
+      version,
+    } = get()
+    if (!userId) return
 
-    if (!userId) return;
-
-    const userRef = doc(db, "users", userId);
+    const userRef = doc(db, "users", userId)
+    const now = Date.now()
 
     try {
-      setSyncStatus("syncing");
+      setSyncStatus("syncing")
+      const snap = await getDoc(userRef)
+      const server = snap.exists() ? snap.data() : {}
 
-      const currentSnapshot = await getDoc(userRef);
-      let mergedDashboards = [...localDashboards];
-      let mergedData = { ...localData };
+      const shouldMerge = (server.lastUpdated || 0) > lastLoaded
+      let mergedData = { ...dashboardData }
 
-      if (currentSnapshot.exists()) {
-        const server = currentSnapshot.data();
-        const serverLastUpdated = server.lastUpdated || 0;
-        const serverDashboards = server.dashboards || [];
-        const serverData = server.dashboardData || {};
-
-        if (serverLastUpdated > lastLoaded) {
-          console.warn("⚠️ Firestore is newer. Performing merge...");
-
-          mergedDashboards = Array.from(new Set([...serverDashboards, ...localDashboards]));
-
-          const mergeGroups = (localGroups, serverGroups) => {
-            const result = [...serverGroups];
-            for (const group of localGroups) {
-              const existing = result.find((g) => g.title === group.title);
-              if (!existing) {
-                result.push(group);
-              } else {
-                const newItems = group.items.filter(
-                  (item) => !existing.items.some(
-                    (i) => i.title === item.title && i.amount === item.amount
-                  )
-                );
-                existing.items = [...existing.items, ...newItems];
-              }
-            }
-            return result;
-          };
-
-          mergedData = { ...serverData };
-          for (const name of mergedDashboards) {
-            const localDash = localData[name] || {};
-            const serverDash = serverData[name] || { scheduleGroups: [], pendingGroups: [] };
-
-            mergedData[name] = {
-              scheduleGroups: mergeGroups(localDash.scheduleGroups || [], serverDash.scheduleGroups || []),
-              pendingGroups: mergeGroups(localDash.pendingGroups || [], serverDash.pendingGroups || []),
-              lastModified: Date.now(),
-            };
+      if (shouldMerge) {
+        for (const { id } of dashboards) {
+          const local = dashboardData[id] || {}
+          const remote = server.dashboardData?.[id] || { scheduleGroups: {} }
+          mergedData[id] = {
+            ...remote,
+            scheduleGroups: { ...remote.scheduleGroups, ...local.scheduleGroups },
+            lastModified: now,
           }
-        } else {
-          Object.entries(localData).forEach(([name, val]) => {
-            if (!val.lastModified) val.lastModified = Date.now();
-          });
         }
       }
 
-      const finalData = {
-        dashboards: mergedDashboards,
-        currentDashboard,
+      const final = {
+        dashboards,
+        currentDashboardId,
         dashboardData: mergedData,
-        lastUpdated: Date.now(),
-      };
+        version,
+        lastUpdated: now,
+      }
 
-      await setDoc(userRef, finalData);
-      localStorage.setItem("financeBackup", JSON.stringify(finalData)); // ✅ always save backup
-      setSyncStatus("synced");
-      setLastLoaded(finalData.lastUpdated);
-      console.log("✅ Data saved with merge (if needed).");
-
-    } catch (e) {
-      console.error("❌ Merge sync failed:", e);
-      setSyncStatus("error");
+      await setDoc(userRef, final)
+      localStorage.setItem("financeBackup", JSON.stringify(final))
+      setSyncStatus("synced")
+      setLastLoaded(now)
+    } catch {
+      setSyncStatus("error")
     }
   },
 
-  setCurrentDashboard: (name) => {
-    set({ currentDashboard: name }, false, "setCurrentDashboard"); // ✅ restored devtools label
-    get().syncDashboard();
-    get().saveUserData();
+  addScheduleGroup: (title, isPending = false, tags = []) => {
+    const id = nanoid()
+    const newGroup = { id, title, isPending, items: {}, tags, archived: false }
+    const { scheduleGroups } = get()
+    const updated = { ...scheduleGroups, [id]: newGroup }
+    set({ scheduleGroups: updated })
+    get().updateDashboardGroups("scheduleGroups", updated)
+  },
+
+  renameGroup: (groupId, newTitle) => {
+    const { scheduleGroups } = get()
+    if (!scheduleGroups[groupId]) return
+    const updatedGroup = { ...scheduleGroups[groupId], title: newTitle }
+    const updated = { ...scheduleGroups, [groupId]: updatedGroup }
+    set({ scheduleGroups: updated })
+    get().updateDashboardGroups("scheduleGroups", updated)
+  },
+
+  deleteGroup: (groupId) => {
+    const { scheduleGroups } = get()
+    const updated = { ...scheduleGroups }
+    delete updated[groupId]
+    set({ scheduleGroups: updated })
+    get().updateDashboardGroups("scheduleGroups", updated)
+  },
+
+  addItemToGroup: (groupId, itemData) => {
+    const { scheduleGroups } = get()
+    const group = scheduleGroups[groupId]
+    if (!group) return
+    const id = nanoid()
+    const newItem = { id, ...itemData, archived: false }
+    const updatedItems = { ...group.items, [id]: newItem }
+    const updatedGroup = { ...group, items: updatedItems }
+    const updatedGroups = { ...scheduleGroups, [groupId]: updatedGroup }
+    set({ scheduleGroups: updatedGroups })
+    get().updateDashboardGroups("scheduleGroups", updatedGroups)
+  },
+
+  editItemInGroup: (groupId, itemId, updatedItem) => {
+    const { scheduleGroups } = get()
+    const group = scheduleGroups[groupId]
+    if (!group || !group.items[itemId]) return
+    const updatedItems = {
+      ...group.items,
+      [itemId]: { ...group.items[itemId], ...updatedItem },
+    }
+    const updatedGroup = { ...group, items: updatedItems }
+    const updatedGroups = { ...scheduleGroups, [groupId]: updatedGroup }
+    set({ scheduleGroups: updatedGroups })
+    get().updateDashboardGroups("scheduleGroups", updatedGroups)
+  },
+
+  deleteItemFromGroup: (groupId, itemId) => {
+    const { scheduleGroups } = get()
+    const group = scheduleGroups[groupId]
+    if (!group || !group.items[itemId]) return
+    const updatedItems = { ...group.items }
+    delete updatedItems[itemId]
+    const updatedGroup = { ...group, items: updatedItems }
+    const updatedGroups = { ...scheduleGroups, [groupId]: updatedGroup }
+    set({ scheduleGroups: updatedGroups })
+    get().updateDashboardGroups("scheduleGroups", updatedGroups)
+  },
+
+  updateDashboardGroups: (key, newGroups) => {
+    const { currentDashboardId, dashboardData } = get()
+    const updated = {
+      ...dashboardData,
+      [currentDashboardId]: {
+        ...dashboardData[currentDashboardId],
+        [key]: newGroups,
+        lastModified: Date.now(),
+      },
+    }
+    set({ dashboardData: updated, [key]: newGroups })
+    get().saveUserData()
   },
 
   addDashboard: (name) => {
-    const { dashboards, dashboardData } = get();
-    if (dashboards.includes(name)) return;
-
-    const newDashboards = [...dashboards, name];
+    const { dashboards, dashboardData } = get()
+    const id = nanoid()
+    const newDash = { id, name }
+    const newList = [...dashboards, newDash]
     const newData = {
       ...dashboardData,
-      [name]: {
-        scheduleGroups: [{ title: "This Month’s Schedule", items: [] }],
-        pendingGroups: [{ title: "General Drafts", items: [] }],
+      [id]: {
+        scheduleGroups: {},
+        sharedWith: [],
         lastModified: Date.now(),
       },
-    };
-
-    set({ dashboards: newDashboards, dashboardData: newData });
-    get().saveUserData();
-  },
-
-  renameDashboard: (oldName, newName) => {
-    const { dashboards, dashboardData } = get();
-    if (!dashboards.includes(oldName) || dashboards.includes(newName)) return;
-
-    const updatedDashboards = dashboards.map((d) => d === oldName ? newName : d);
-    const updatedData = { ...dashboardData };
-    updatedData[newName] = { ...updatedData[oldName], lastModified: Date.now() };
-    delete updatedData[oldName];
-
-    set({ dashboards: updatedDashboards, dashboardData: updatedData });
-    get().saveUserData();
-  },
-
-  removeDashboard: (name) => {
-    const { dashboards, dashboardData } = get();
-    const updatedDashboards = dashboards.filter((d) => d !== name);
-    const updatedData = { ...dashboardData };
-    delete updatedData[name];
-
-    set({ dashboards: updatedDashboards, dashboardData: updatedData });
-    get().saveUserData();
-  },
-
-  updateScheduleGroups: (groups) => {
-    const { currentDashboard, dashboardData } = get();
-    const updated = {
-      ...dashboardData,
-      [currentDashboard]: {
-        ...dashboardData[currentDashboard],
-        scheduleGroups: groups,
-        lastModified: Date.now(),
-      },
-    };
-    set({ dashboardData: updated, scheduleGroups: groups });
-    get().saveUserData();
-  },
-
-  addScheduleGroup: (group) => {
-    const { scheduleGroups } = get();
-    get().updateScheduleGroups([...scheduleGroups, group]);
-  },
-
-  renameGroup: (index, newTitle) => {
-    const { scheduleGroups } = get();
-    const updated = [...scheduleGroups];
-    updated[index].title = newTitle;
-    get().updateScheduleGroups(updated);
-  },
-
-  deleteGroup: (index) => {
-    const { scheduleGroups } = get();
-    const updated = [...scheduleGroups];
-    updated.splice(index, 1);
-    get().updateScheduleGroups(updated);
-  },
-
-  addItemToGroup: (groupIndex, item) => {
-    const { scheduleGroups } = get();
-    const updated = [...scheduleGroups];
-    updated[groupIndex].items.push(item);
-    get().updateScheduleGroups(updated);
-  },
-
-  editItemInGroup: (groupIndex, itemIndex, updatedItem) => {
-    const { scheduleGroups } = get();
-    const updated = [...scheduleGroups];
-    updated[groupIndex].items[itemIndex] = {
-      ...updated[groupIndex].items[itemIndex],
-      ...updatedItem,
-    };
-    get().updateScheduleGroups(updated);
-  },
-
-  deleteItemFromGroup: (groupIndex, itemIndex) => {
-    const { scheduleGroups } = get();
-    const updated = [...scheduleGroups];
-    updated[groupIndex].items.splice(itemIndex, 1);
-    get().updateScheduleGroups(updated);
-  },
-
-  updatePendingGroups: (groups) => {
-    const { currentDashboard, dashboardData } = get();
-    const updated = {
-      ...dashboardData,
-      [currentDashboard]: {
-        ...dashboardData[currentDashboard],
-        pendingGroups: groups,
-        lastModified: Date.now(),
-      },
-    };
-    set({ dashboardData: updated, pendingGroups: groups });
-    get().saveUserData();
-  },
-
-  addPendingGroup: (group) => {
-    const { pendingGroups } = get();
-    get().updatePendingGroups([...pendingGroups, group]);
-  },
-
-  renamePendingGroup: (index, newTitle) => {
-    const { pendingGroups } = get();
-    const updated = [...pendingGroups];
-    updated[index].title = newTitle;
-    get().updatePendingGroups(updated);
-  },
-
-  deletePendingGroup: (index) => {
-    const { pendingGroups } = get();
-    const updated = [...pendingGroups];
-    updated.splice(index, 1);
-    get().updatePendingGroups(updated);
-  },
-
-  addPendingItemToGroup: (groupIndex, item) => {
-    const { pendingGroups } = get();
-    const updated = [...pendingGroups];
-    updated[groupIndex].items.push(item);
-    get().updatePendingGroups(updated);
-  },
-
-  editPendingItemInGroup: (groupIndex, itemIndex, updatedItem) => {
-    const { pendingGroups } = get();
-    const updated = [...pendingGroups];
-    updated[groupIndex].items[itemIndex] = {
-      ...updated[groupIndex].items[itemIndex],
-      ...updatedItem,
-    };
-    get().updatePendingGroups(updated);
-  },
-
-  removePendingItemFromGroup: (groupIndex, itemIndex) => {
-    const { pendingGroups } = get();
-    if (
-      !Array.isArray(pendingGroups) ||
-      !pendingGroups[groupIndex] ||
-      !Array.isArray(pendingGroups[groupIndex].items)
-    ) {
-      console.warn("Invalid removePendingItemFromGroup params", { groupIndex, itemIndex });
-      return;
     }
-
-    const updated = [...pendingGroups];
-    updated[groupIndex] = {
-      ...updated[groupIndex],
-      items: [...updated[groupIndex].items],
-    };
-    updated[groupIndex].items.splice(itemIndex, 1);
-    get().updatePendingGroups(updated);
+    set({ dashboards: newList, dashboardData: newData })
+    get().saveUserData()
   },
-}));
 
-export default useFinance;
+  renameDashboard: (id, newName) => {
+    const { dashboards } = get()
+    const renamed = dashboards.map((d) => (d.id === id ? { ...d, name: newName } : d))
+    set({ dashboards: renamed })
+    get().saveUserData()
+  },
+
+  removeDashboard: (id) => {
+    const { dashboards, dashboardData, currentDashboardId } = get()
+    const list = dashboards.filter((d) => d.id !== id)
+    const data = { ...dashboardData }
+    delete data[id]
+
+    // ✅ Fallback to remaining dashboard
+    const fallbackId = list[0]?.id || "default"
+    set({
+      dashboards: list.length > 0 ? list : [DEFAULT_DASHBOARD],
+      dashboardData: list.length > 0 ? data : { default: { scheduleGroups: {}, lastModified: Date.now(), sharedWith: [] } },
+      currentDashboardId: fallbackId,
+    })
+    get().syncDashboard()
+    get().saveUserData()
+  },
+
+  setCurrentDashboard: (id) => {
+    set({ currentDashboardId: id })
+    get().syncDashboard()
+    get().saveUserData()
+  },
+}))
+
+export default useFinance

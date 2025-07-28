@@ -1,3 +1,5 @@
+// ✅ AddScheduleModal.jsx — Updated to support Draft toggle with `isPending`
+
 import React, { useState, useEffect } from 'react'
 import useFinance from '../state/finance'
 import { Dialog } from '@headlessui/react'
@@ -16,8 +18,8 @@ export default function AddScheduleModal({
   defaultValues = {},
   onSave = null,
   onDelete = null,
-  groupIndex = 0,
-  fallbackMonthDate = null, // ✅ newly added
+  groupId = null,
+  fallbackMonthDate = null,
 }) {
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
@@ -26,11 +28,12 @@ export default function AddScheduleModal({
   const [icon, setIcon] = useState('ReceiptIndianRupee')
   const [repeat, setRepeat] = useState(true)
   const [repeatEndDate, setRepeatEndDate] = useState('')
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isPositive, setIsPositive] = useState(true)
+  const [isPending, setIsPending] = useState(false) // ✅ new state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
-  const groupTitle = scheduleGroups[groupIndex]?.title || 'Untitled'
+  const groupTitle = scheduleGroups[groupId]?.title || 'Untitled'
   const addItemToGroup = useFinance((state) => state.addItemToGroup)
 
   useEffect(() => {
@@ -44,6 +47,7 @@ export default function AddScheduleModal({
       setIcon(defaultValues.icon || 'ReceiptIndianRupee')
       setRepeat(defaultValues.repeat ?? true)
       setRepeatEndDate(defaultValues.repeatEndDate || '')
+      setIsPending(defaultValues.isPending || false) // ✅ populate from edit
     }
   }, [isOpen, defaultValues])
 
@@ -55,7 +59,6 @@ export default function AddScheduleModal({
     }
 
     const parsedAmount = parseFloat(isPositive ? amount : "-" + amount)
-
     const newItem = {
       title,
       amount: parsedAmount,
@@ -64,6 +67,7 @@ export default function AddScheduleModal({
       category,
       repeat,
       repeatEndDate: repeat ? repeatEndDate : '',
+      isPending // ✅ include in item
     }
 
     if (isEditMode && onSave) {
@@ -71,18 +75,17 @@ export default function AddScheduleModal({
     } else if (onSave) {
       onSave(newItem)
     } else {
-      addItemToGroup(groupIndex, newItem)
+      addItemToGroup(groupId, newItem)
     }
 
     onClose()
   }
 
-  // ✅ Pick appropriate date to show on calendar
   const selectedDateForCalendar = date
     ? new Date(date)
     : fallbackMonthDate
-      ? new Date(fallbackMonthDate)
-      : null;
+    ? new Date(fallbackMonthDate)
+    : null
 
   return (
     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
@@ -99,6 +102,7 @@ export default function AddScheduleModal({
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-3 text-sm text-white">
+            {/* Title and Amount */}
             <div className="flex gap-2">
               <div className="w-1/2">
                 <label className="block mb-0.5 text-sm">Title *</label>
@@ -110,7 +114,6 @@ export default function AddScheduleModal({
                   placeholder="e.g. Rent, EMI"
                 />
               </div>
-
               <div className="w-1/2">
                 <AmountInput
                   value={amount}
@@ -122,6 +125,7 @@ export default function AddScheduleModal({
               </div>
             </div>
 
+            {/* Category & Date */}
             <div className="flex gap-2">
               <div className="w-1/2">
                 <label className="block mb-0.5 text-sm text-white">Category</label>
@@ -136,7 +140,6 @@ export default function AddScheduleModal({
                   ))}
                 </select>
               </div>
-
               <div className="w-1/2">
                 <label className="block mb-0.5 text-sm text-white">
                   Date <span className="text-red-400">*</span>
@@ -147,12 +150,11 @@ export default function AddScheduleModal({
                   dateFormat="dd-MM-yyyy"
                   placeholderText="Select a date"
                   className="w-full px-2 py-1.5 text-sm bg-zinc-800 border rounded-md text-white focus:outline-none"
-                  calendarClassName="custom-calendar"
-                  popperModifiers={[{ name: "preventOverflow", options: { boundary: "viewport" } }]}
                 />
               </div>
             </div>
 
+            {/* Icon Selection */}
             <div>
               <label className="block text-sm text-white mb-1">Select Icon</label>
               <div className="flex flex-wrap gap-2">
@@ -170,47 +172,52 @@ export default function AddScheduleModal({
               </div>
             </div>
 
-            <div className="flex items-end gap-2">
-              <div className="flex flex-col gap-1">
-                <label htmlFor="repeat-toggle" className="text-sm text-white mb-0.5">
-                  Repeat Every Month
-                </label>
-                <div className="flex items-center gap-2">
-                  <button
-                    id="repeat-toggle"
-                    type="button"
-                    role="switch"
-                    aria-checked={repeat}
-                    onClick={() => setRepeat(!repeat)}
-                    className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors 
-                      ${repeat ? "bg-blue-500" : "bg-zinc-600"}`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform 
-                      ${repeat ? "translate-x-5" : "translate-x-1"}`}
-                    />
-                  </button>
-                  {repeat && (
-                    <span className="text-xs text-white-400 font-medium">Select date</span>
-                  )}
-                </div>
+            {/* Repeat & Draft Toggle */}
+            <div className="flex items-center gap-4">
+              <div className="flex flex-col">
+                <label className="text-sm mb-0.5">Repeat Monthly</label>
+                <button
+                  type="button"
+                  onClick={() => setRepeat(!repeat)}
+                  className={`relative w-10 h-5 rounded-full ${repeat ? "bg-blue-500" : "bg-zinc-600"}`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform
+                      ${repeat ? "translate-x-5" : "translate-x-0"}`}
+                  />
+                </button>
               </div>
 
-              {repeat && (
-                <div className="flex-1">
-                  <DatePicker
-                    selected={repeatEndDate ? new Date(repeatEndDate) : null}
-                    onChange={(date) => setRepeatEndDate(date.toISOString().split("T")[0])}
-                    dateFormat="dd-MM-yyyy"
-                    placeholderText="Select end date"
-                    className="w-full px-2 py-1.5 text-sm bg-zinc-800 border rounded-md text-white focus:outline-none"
-                    calendarClassName="custom-calendar"
-                    popperModifiers={[{ name: "preventOverflow", options: { boundary: "viewport" } }]}
+              <div className="flex flex-col">
+                <label className="text-sm mb-0.5">Save as Draft</label>
+                <button
+                  type="button"
+                  onClick={() => setIsPending(!isPending)}
+                  className={`relative w-10 h-5 rounded-full ${isPending ? "bg-yellow-500" : "bg-zinc-600"}`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform
+                      ${isPending ? "translate-x-5" : "translate-x-0"}`}
                   />
-                </div>
-              )}
+                </button>
+              </div>
             </div>
 
+            {/* Repeat End Date */}
+            {repeat && (
+              <div>
+                <label className="text-sm mb-0.5">Repeat Until</label>
+                <DatePicker
+                  selected={repeatEndDate ? new Date(repeatEndDate) : null}
+                  onChange={(date) => setRepeatEndDate(date.toISOString().split("T")[0])}
+                  dateFormat="dd-MM-yyyy"
+                  placeholderText="Select end date"
+                  className="w-full px-2 py-1.5 text-sm bg-zinc-800 border rounded-md text-white focus:outline-none"
+                />
+              </div>
+            )}
+
+            {/* Submit Buttons */}
             <div className="flex gap-2">
               <button
                 type="submit"
@@ -218,7 +225,6 @@ export default function AddScheduleModal({
               >
                 {isEditMode ? 'Save Changes' : 'Add Item'}
               </button>
-
               {isEditMode && (
                 <button
                   type="button"
@@ -231,6 +237,7 @@ export default function AddScheduleModal({
             </div>
           </form>
 
+          {/* Confirm Delete Dialog */}
           {showDeleteConfirm && (
             <ConfirmDialog
               isOpen={true}

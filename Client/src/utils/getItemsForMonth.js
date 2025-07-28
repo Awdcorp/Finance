@@ -1,10 +1,10 @@
-// utils/getItemsForMonth.js
+// ✅ utils/getItemsForMonth.js — updated for object-based groups
 
 export default function getItemsForMonth(scheduleGroups, selectedDate) {
   const currentMonthItems = [];
 
-  scheduleGroups.forEach((group, groupIndex) => {
-    group.items.forEach((item) => {
+  Object.entries(scheduleGroups).forEach(([groupId, group]) => {
+    Object.entries(group.items || {}).forEach(([itemId, item]) => {
       const itemDate = new Date(item.date);
 
       const isSameMonth =
@@ -12,8 +12,8 @@ export default function getItemsForMonth(scheduleGroups, selectedDate) {
         itemDate.getMonth() === selectedDate.getMonth();
 
       if (isSameMonth) {
-        // Real item from selected month
-        currentMonthItems.push({ ...item, groupIndex });
+        // ✅ Real item from selected month
+        currentMonthItems.push({ ...item, groupId, itemId });
       } else if (item.repeat) {
         const isBeforeOrSameMonth =
           itemDate.getFullYear() < selectedDate.getFullYear() ||
@@ -41,12 +41,13 @@ export default function getItemsForMonth(scheduleGroups, selectedDate) {
             itemDate.getDate()
           );
 
-          // Skip invalid dates like Feb 30
+          // ✅ Skip invalid dates like Feb 30
           if (repeatedDate.getMonth() === selectedDate.getMonth()) {
             currentMonthItems.push({
               ...item,
               date: repeatedDate.toISOString().slice(0, 10),
-              groupIndex,
+              groupId,
+              itemId,
               originalDate: item.date,
             });
           }

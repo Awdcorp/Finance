@@ -1,18 +1,24 @@
-export default function getProjectedBalance(scheduleGroups, selectedDate) {
-  if (!scheduleGroups || !selectedDate) return 0;
+// utils/getProjectedBalance.js
+
+export default function getProjectedBalance(scheduleGroupsObj, selectedDate) {
+  if (!scheduleGroupsObj || !selectedDate) return 0;
 
   const endMonth = selectedDate.getMonth();
   const endYear = selectedDate.getFullYear();
 
   let total = 0;
 
-  scheduleGroups.forEach((group) => {
-    group.items.forEach((item) => {
+  // 🔄 Iterate over each group (object structure)
+  Object.entries(scheduleGroupsObj).forEach(([groupId, group]) => {
+    const items = group.items || {};
+
+    // 🔄 Iterate over each item in the group (also object structure)
+    Object.entries(items).forEach(([itemId, item]) => {
       const itemDate = new Date(item.date);
       const itemMonth = itemDate.getMonth();
       const itemYear = itemDate.getFullYear();
 
-      // ✅ Case 1: Normal item before or within selected month
+      // ✅ Case 1: Non-repeating item that falls before or in selected month
       const isBeforeOrSameMonth =
         itemYear < endYear ||
         (itemYear === endYear && itemMonth <= endMonth);
@@ -21,29 +27,25 @@ export default function getProjectedBalance(scheduleGroups, selectedDate) {
         total += item.amount;
       }
 
-      // ✅ Case 2: Recurring item — simulate each monthly occurrence
+      // ✅ Case 2: Recurring item — simulate each occurrence
       if (item.repeat) {
         const repeatEnd = item.repeatEndDate
           ? new Date(item.repeatEndDate)
-          : new Date(endYear, endMonth, 1); // default: repeat until selected month
+          : new Date(endYear, endMonth, 1); // If no repeatEndDate, assume active till selected month
 
-        const current = new Date(itemDate); // start from original
-        current.setDate(1); // normalize day
+        const current = new Date(itemDate);
+        current.setDate(1); // Normalize date to 1st of month
 
-        // generate months until repeat end or selectedDate
         while (
           current.getFullYear() < endYear ||
           (current.getFullYear() === endYear &&
             current.getMonth() <= endMonth)
         ) {
-          if (
-            !item.repeatEndDate ||
-            current <= repeatEnd
-          ) {
+          // Check if current simulated repeat month is before or on repeatEndDate
+          if (!item.repeatEndDate || current <= repeatEnd) {
             total += item.amount;
           }
-          // move to next month
-          current.setMonth(current.getMonth() + 1);
+          current.setMonth(current.getMonth() + 1); // move to next month
         }
       }
     });

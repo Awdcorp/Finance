@@ -7,7 +7,7 @@ import BottomNav from "../components/BottomNav";
 import useFinance from "../state/finance";
 import getItemsForMonth from "../utils/getItemsForMonth";
 import PendingTransactionList from "../components/PendingTransactionList";
-import TextInputModal from "../components/TextInputModal"
+import TextInputModal from "../components/TextInputModal";
 import PendingSummaryCard from "../components/PendingSummaryCard";
 import DashboardSelector from "../components/DashboardSelector";
 import SidebarNav from "../components/SidebarNav";
@@ -19,39 +19,41 @@ export default function Dashboard({ user }) {
   const currentDashboard = useFinance((state) => state.currentDashboard);
   const syncDashboard = useFinance((state) => state.syncDashboard);
   const loadUserData = useFinance((state) => state.loadUserData);
+  const addScheduleGroup = useFinance((state) => state.addScheduleGroup);
 
   const [isAddGroupOpen, setIsAddGroupOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [showAddPendingGroup, setShowAddPendingGroup] = useState(false);
 
-  // Load Firestore data once
+  // Load data for current user
   useEffect(() => {
     if (user?.uid) {
       loadUserData(user.uid);
     }
   }, [user]);
 
-  // When dashboard changes, reset month and data
+  // Sync data and reset calendar when dashboard changes
   useEffect(() => {
     syncDashboard();
     setSelectedDate(new Date());
   }, [currentDashboard]);
 
+  // Change calendar month
   const handleMonthChange = (offset) => {
     const newDate = new Date(selectedDate);
     newDate.setMonth(selectedDate.getMonth() + offset);
     setSelectedDate(newDate);
   };
 
-  const currentMonthItems = getItemsForMonth(scheduleGroups, selectedDate);
+  // Get monthly visible items (excluding drafts)
+  const currentMonthItems = useMemo(
+    () => getItemsForMonth(scheduleGroups, selectedDate),
+    [scheduleGroups, selectedDate]
+  );
 
+  // Aggregate income, expenses, and balance
   const { income, expenses, totalBalance } = useMemo(() => {
-    const income = currentMonthItems
-      .filter((item) => item.amount > 0)
-      .reduce((sum, item) => sum + item.amount, 0);
-    const expenses = currentMonthItems
-      .filter((item) => item.amount < 0)
-      .reduce((sum, item) => sum + item.amount, 0);
+    const income = currentMonthItems.filter((item) => item.amount > 0).reduce((sum, item) => sum + item.amount, 0);
+    const expenses = currentMonthItems.filter((item) => item.amount < 0).reduce((sum, item) => sum + item.amount, 0);
     return {
       income,
       expenses,
@@ -61,11 +63,12 @@ export default function Dashboard({ user }) {
 
   return (
     <div className="min-h-screen bg-neutral-900 text-white flex flex-col lg:flex-row">
-      {/* Sidebar for Desktop */}
+      {/* Sidebar (Desktop) */}
       <SidebarNav />
 
-      {/* Main Area */}
+      {/* Main */}
       <div className="flex-1 lg:ml-64 px-4 pt-6 pb-[120px] flex flex-col gap-6">
+        {/* Header */}
         <div className="relative">
           <div className="flex justify-center">
             <DashboardSelector />
@@ -75,7 +78,7 @@ export default function Dashboard({ user }) {
           </div>
         </div>
 
-        {/* Month Selector */}
+        {/* Month navigation */}
         <div className="flex justify-between items-center text-white px-2">
           <button onClick={() => handleMonthChange(-1)} className="text-2xl">←</button>
           <span className="text-lg font-semibold">
@@ -93,10 +96,7 @@ export default function Dashboard({ user }) {
               <BalanceCard label="Income" amount={income} type="income" />
               <BalanceCard label="Expenses" amount={Math.abs(expenses)} type="expense" />
             </div>
-            <CalendarGrid
-              items={currentMonthItems}
-              selectedDate={selectedDate}
-            />
+            <CalendarGrid items={currentMonthItems} selectedDate={selectedDate} />
           </div>
 
           {/* RIGHT */}
@@ -118,43 +118,25 @@ export default function Dashboard({ user }) {
             </button>
 
             <div className="px-4"><PendingSummaryCard /></div>
-            <PendingTransactionList selectedDate={selectedDate}/>
-
-            <button
-              onClick={() => setShowAddPendingGroup(true)}
-              className="text-blue-400 hover:text-yellow-300 text-sm"
-            >
-              + Add Draft Group
-            </button>
+            <PendingTransactionList selectedDate={selectedDate} />
           </div>
         </div>
 
-        {/* Modals */}
-          <TextInputModal
+        {/* Add Group Modal */}
+        <TextInputModal
           isOpen={isAddGroupOpen}
           title="Add New Block"
           confirmLabel="Add"
           initialValue=""
           onConfirm={(title) => {
-            useFinance.getState().addScheduleGroup({ title, items: [] })
-            toast.success("Schedule group added")
+            addScheduleGroup({ title, items: [] });
+            toast.success("Schedule group added");
+            setIsAddGroupOpen(false);
           }}
           onClose={() => setIsAddGroupOpen(false)}
         />
 
-        <TextInputModal
-          isOpen={showAddPendingGroup}
-          title="Add Draft Group"
-          confirmLabel="Add"
-          initialValue=""
-          onConfirm={(title) => {
-            useFinance.getState().addPendingGroup({ title, items: [] })
-            toast.success("Pending draft added")
-          }}
-          onClose={() => setShowAddPendingGroup(false)}
-        />
-
-        {/* Bottom Nav for Mobile */}
+        {/* Bottom Nav (Mobile) */}
         <div className="lg:hidden">
           <BottomNav />
         </div>
