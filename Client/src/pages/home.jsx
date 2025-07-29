@@ -22,6 +22,7 @@ export default function Dashboard({ user }) {
   const addScheduleGroup = useFinance((state) => state.addScheduleGroup);
 
   const [isAddGroupOpen, setIsAddGroupOpen] = useState(false);
+  const [isAddPendingGroupOpen, setIsAddPendingGroupOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   // Load data for current user
@@ -112,21 +113,58 @@ export default function Dashboard({ user }) {
 
             <div className="px-4"><PendingSummaryCard /></div>
             <PendingTransactionList selectedDate={selectedDate} />
+            {/* ✅ Add Draft Group button */}
+            <button
+              onClick={() => setIsAddPendingGroupOpen(true)}
+              className="text-blue-400 hover:text-yellow-300 text-sm px-4 pt-2"
+            >
+              + Add New Draft Group
+            </button>
           </div>
         </div>
 
-        {/* Add Group Modal */}
+        {/* Add Group Modal (Scheduled) */}
         <TextInputModal
           isOpen={isAddGroupOpen}
           title="Add New Block"
           confirmLabel="Add"
           initialValue=""
           onConfirm={(title) => {
+            const exists = Object.values(scheduleGroups).some(
+              (g) => !g.isPending && g.title.toLowerCase() === title.toLowerCase()
+            );
+            if (exists) {
+              toast.error("A scheduled group with this name already exists");
+              return;
+            }
+
             addScheduleGroup(title);
             toast.success("Schedule group added");
             setIsAddGroupOpen(false);
           }}
           onClose={() => setIsAddGroupOpen(false)}
+        />
+
+        {/* Add Draft Group Modal */}
+        <TextInputModal
+          isOpen={isAddPendingGroupOpen}
+          title="Add Draft Group"
+          confirmLabel="Add"
+          initialValue=""
+          onConfirm={(title) => {
+            const exists = Object.values(scheduleGroups).some(
+              (g) => g.isPending && g.title.toLowerCase() === title.toLowerCase()
+            );
+            if (exists) {
+              toast.error("A draft group with this name already exists");
+              return;
+            }
+
+            addScheduleGroup(title, true);
+            toast.success("Draft group added");
+            setIsAddPendingGroupOpen(false);
+          }}
+          onClose={() => setIsAddPendingGroupOpen(false)}
         />
 
         {/* Bottom Nav (Mobile) */}

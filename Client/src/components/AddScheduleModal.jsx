@@ -1,6 +1,6 @@
 // ✅ AddScheduleModal.jsx — Routes items based on `isPending` to correct group
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import useFinance from '../state/finance'
 import { Dialog } from '@headlessui/react'
 import { X } from 'lucide-react'
@@ -11,6 +11,11 @@ import "react-datepicker/dist/react-datepicker.css"
 import { categoryOptions, iconOptions } from "../constants/categories"
 import AmountInput from "./AmountInput"
 import GroupSelectorModal from './GroupSelectorModal'
+import DateSelector from "./DateSelector";
+
+const isMobile = typeof window !== "undefined" && /Mobi|Android/i.test(navigator.userAgent);
+const formatDisplayDate = (dateStr) =>
+  dateStr ? new Date(dateStr).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "Select Date";
 
 export default function AddScheduleModal({
   isOpen,
@@ -34,6 +39,10 @@ export default function AddScheduleModal({
   const [targetGroupId, setTargetGroupId] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showGroupSelector, setShowGroupSelector] = useState(false)
+  const [showDesktopCalendar, setShowDesktopCalendar] = useState(false);
+  const [showRepeatCalendar, setShowRepeatCalendar] = useState(false);
+  const hiddenDateInputRef = useRef(null);
+  const hiddenRepeatInputRef = useRef(null);
 
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
   const addItemToGroup = useFinance((state) => state.addItemToGroup)
@@ -110,6 +119,12 @@ export default function AddScheduleModal({
     ? new Date(fallbackMonthDate)
     : null
 
+  const selectedRepeatEndDate = repeatEndDate
+    ? new Date(repeatEndDate)
+    : fallbackMonthDate
+    ? new Date(fallbackMonthDate)
+    : null;
+
   const handleToggleIsPending = () => {
     const otherGroups = Object.values(scheduleGroups).filter((g) => g.isPending === !isPending)
     if (otherGroups.length === 0) {
@@ -173,16 +188,14 @@ export default function AddScheduleModal({
                   ))}
                 </select>
               </div>
-              <div className="w-1/2">
-                <label className="block mb-0.5 text-sm">Date *</label>
-                <DatePicker
-                  selected={selectedDateForCalendar}
-                  onChange={(date) => setDate(date.toISOString().split("T")[0])}
-                  dateFormat="dd-MM-yyyy"
-                  placeholderText="Select date"
-                  className="w-full px-2 py-1.5 bg-zinc-800 border rounded-md text-white"
-                />
-              </div>
+              {/* 📅 Primary Date Selector */}
+<DateSelector
+  label="Date *"
+  date={date}
+  setDate={setDate}
+  fallbackMonthDate={fallbackMonthDate}
+/>
+
             </div>
 
             {/* Icon Picker */}
@@ -240,18 +253,15 @@ export default function AddScheduleModal({
             </div>
 
             {/* Repeat End Date */}
-            {repeat && (
-              <div>
-                <label className="text-sm mb-0.5">Repeat Until</label>
-                <DatePicker
-                  selected={repeatEndDate ? new Date(repeatEndDate) : null}
-                  onChange={(date) => setRepeatEndDate(date.toISOString().split("T")[0])}
-                  dateFormat="dd-MM-yyyy"
-                  readOnly={window.innerWidth < 768}
-                  className="w-full px-2 py-1.5 bg-zinc-800 border rounded-md text-white"
-                />
-              </div>
-            )}
+{repeat && (
+  <DateSelector
+    label="Repeat Until"
+    date={repeatEndDate}
+    setDate={setRepeatEndDate}
+    fallbackMonthDate={fallbackMonthDate}
+  />
+)}
+
 
             {targetGroupId && (
             <div>

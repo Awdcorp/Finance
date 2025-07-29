@@ -24,14 +24,15 @@ export default function TextInputModal({
 
   // ✅ Handle submit logic
   const handleSubmit = () => {
-    const trimmed = value.trim()
-    if (!validate(trimmed)) {
-      setError(errorMessage || "Invalid input")
-      return
+    const trimmed = value.trim();
+    const isValid = validate(trimmed);
+    if (!isValid) {
+      setError(errorMessage || "Invalid input");
+      return;
     }
-    onConfirm(trimmed)
-    onClose()
-  }
+    onConfirm(trimmed);
+    onClose();
+  };
 
   const isDisabled = !validate(value.trim())
 
@@ -50,9 +51,13 @@ export default function TextInputModal({
             className="w-full p-2 rounded bg-neutral-700 border border-neutral-600 mb-2 text-white"
             placeholder="Enter value"
             value={value}
+            autoFocus
             onChange={(e) => {
-              setValue(e.target.value)
-              setError("")
+              setValue(e.target.value);
+              if (error) setError(""); // clear error on edit
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSubmit();
             }}
           />
 
@@ -72,12 +77,7 @@ export default function TextInputModal({
             </button>
             <button
               onClick={handleSubmit}
-              disabled={isDisabled}
-              className={`text-sm px-3 py-1 rounded ${
-                isDisabled
-                  ? "bg-gray-500 cursor-not-allowed"
-                  : "bg-green-600 hover:bg-green-500"
-              }`}
+              className="text-sm px-3 py-1 rounded bg-green-600 hover:bg-green-500"
             >
               {confirmLabel}
             </button>

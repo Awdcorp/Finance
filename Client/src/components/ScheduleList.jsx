@@ -8,6 +8,7 @@ import ConfirmDialog from "./ConfirmDialog"
 import toast from "react-hot-toast"
 import { IndianRupee, CirclePlus } from "lucide-react"
 import { categoryIcons, categoryColors, iconMap } from "../constants/categories"
+import getItemsForMonth from "../utils/getItemsForMonth"
 
 export default function ScheduleList({ selectedDate }) {
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
@@ -37,7 +38,8 @@ export default function ScheduleList({ selectedDate }) {
   return (
     <div className="px-4 relative">
       {Object.values(scheduleGroups).filter((g) => !g.isPending).map((group) => {
-        const items = Object.values(group.items || {})
+        const items = getItemsForMonth([group], selectedDate)
+
         const totalAmount = items
           .filter((item) => item && typeof item.amount === "number")
           .reduce((acc, item) => acc + item.amount, 0)
@@ -104,7 +106,7 @@ export default function ScheduleList({ selectedDate }) {
 
                   return (
                     <div
-                      key={item.id}
+                      key={item.id + item.date}
                       className="py-3 flex justify-between items-start text-sm cursor-pointer border-b border-neutral-700 last:border-b-0"
                       onClick={() => setEditInfo({ groupId: group.id, itemId: item.id })}
                     >

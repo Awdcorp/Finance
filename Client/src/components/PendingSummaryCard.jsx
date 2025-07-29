@@ -3,12 +3,18 @@ import useFinance from "../state/finance";
 import { IndianRupee, FileClock } from "lucide-react";
 
 export default function PendingSummaryCard() {
-  const pendingGroups = useFinance((state) => state.pendingGroups) || [];
+  const scheduleGroups = useFinance((state) => state.scheduleGroups) || {};
 
-  const allPendingItems = pendingGroups
-    .flatMap((group) => Object.values(group.items || {}));
+  const pendingGroups = Object.values(scheduleGroups).filter((group) => group.isPending);
 
-  const totalAmount = allPendingItems.reduce((acc, item) => acc + item.amount, 0).toFixed(2);
+  const allPendingItems = pendingGroups.flatMap((group) =>
+    Object.values(group.items || {})
+  );
+
+  const totalAmount = allPendingItems
+    .reduce((acc, item) => acc + (parseFloat(item.amount) || 0), 0)
+    .toFixed(2);
+
   const itemCount = allPendingItems.length;
 
   return (
