@@ -1,4 +1,4 @@
-// ✅ ScheduleList.jsx — Updated to support new group/item ID structure
+// ✅ ScheduleList.jsx — Updated to route items based on isPending toggle
 
 import React, { useState, useRef, useEffect } from "react"
 import useFinance from "../state/finance"
@@ -38,7 +38,9 @@ export default function ScheduleList({ selectedDate }) {
     <div className="px-4 relative">
       {Object.values(scheduleGroups).filter((g) => !g.isPending).map((group) => {
         const items = Object.values(group.items || {})
-        const totalAmount = items.reduce((acc, item) => acc + item.amount, 0)
+        const totalAmount = items
+          .filter((item) => item && typeof item.amount === "number")
+          .reduce((acc, item) => acc + item.amount, 0)
 
         return (
           <div key={group.id} className="mb-6 relative">
@@ -113,8 +115,12 @@ export default function ScheduleList({ selectedDate }) {
                         <div className="text-white flex flex-col items-start">
                           <span className="font-medium">{item.title}</span>
                           {item.category && (
-                            <span className={`text-xs capitalize px-2 py-0.5 rounded w-fit mt-1 ${colorClass}`}>
-                              {item.category}
+                            <span
+                              className={`text-xs capitalize px-2 py-0.5 rounded w-fit mt-1 ${colorClass}`}
+                            >
+                              {typeof item.category === "string"
+                                ? item.category
+                                : JSON.stringify(item.category)}
                             </span>
                           )}
                         </div>
@@ -161,15 +167,9 @@ export default function ScheduleList({ selectedDate }) {
           }
           groupId={editInfo.groupId}
           fallbackMonthDate={selectedDate}
-          onSave={(itemData) => {
-            if (editInfo.itemId) {
-              editItemInGroup(editInfo.groupId, editInfo.itemId, itemData)
-              toast.success("Item updated successfully")
-            } else {
-              addItemToGroup(editInfo.groupId, itemData)
-              toast.success("Item added successfully")
-            }
+          onSave={() => {
             setEditInfo(null)
+            toast.success("Item saved")
           }}
           onDelete={editInfo.itemId ? () => {
             deleteItemFromGroup(editInfo.groupId, editInfo.itemId)

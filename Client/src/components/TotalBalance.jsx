@@ -1,7 +1,7 @@
 import React, { useState } from "react"
 import useFinance from "../state/finance"
 import getItemsForMonth from "../utils/getItemsForMonth"
-import getProjectedBalance from "../utils/getProjectedBalance" // ✅ added
+import getProjectedBalance from "../utils/getProjectedBalance"
 import { toast } from "react-hot-toast"
 import { Pencil, IndianRupee } from "lucide-react"
 import AmountInput from "./AmountInput"
@@ -14,7 +14,7 @@ export default function TotalBalance({ selectedDate }) {
   const [actualBalance, setActualBalance] = useState("")
   const [isPositive, setIsPositive] = useState(true)
 
-  // Get current month's items
+  // Get current month's scheduled items only
   const items = getItemsForMonth(scheduleGroups, selectedDate)
 
   const income = items
@@ -27,7 +27,7 @@ export default function TotalBalance({ selectedDate }) {
 
   const total = income + expenses
 
-  const projectedBalance = getProjectedBalance(scheduleGroups, selectedDate) // ✅ new
+  const projectedBalance = getProjectedBalance(scheduleGroups, selectedDate)
 
   const handleUpdateBalance = () => {
     const parsed = parseFloat(isPositive ? actualBalance : `-${actualBalance}`)
@@ -46,25 +46,31 @@ export default function TotalBalance({ selectedDate }) {
     const selectedMonth = selectedDate.getMonth()
     const selectedYear = selectedDate.getFullYear()
 
-    const matchingGroupIndex = scheduleGroups.findIndex((group) =>
-      group.items.some((item) => {
+    // ✅ New logic: find first matching groupId with a date in the selected month
+    const scheduleGroupEntries = Object.entries(scheduleGroups).filter(([_, g]) => !g.isPending)
+    let targetGroupId = scheduleGroupEntries[0]?.[0] // fallback to first scheduled group
+
+    for (const [groupId, group] of scheduleGroupEntries) {
+      const match = Object.values(group.items || {}).some((item) => {
         const date = new Date(item.date)
         return (
           date.getMonth() === selectedMonth &&
           date.getFullYear() === selectedYear
         )
       })
-    )
-
-    const targetGroupIndex = matchingGroupIndex !== -1 ? matchingGroupIndex : 0
+      if (match) {
+        targetGroupId = groupId
+        break
+      }
+    }
 
     try {
-      addItemToGroup(targetGroupIndex, {
+      addItemToGroup(targetGroupId, {
         title: "Balance Adjustment",
         amount: diff,
         date: selectedDate.toISOString().split("T")[0],
         category: "Miscellaneous",
-        notes: "Auto-added from Update Balance"
+        notes: "Auto-added from Update Balance",
       })
       toast.success("Balance adjustment added")
       setIsModalOpen(false)
@@ -73,6 +79,7 @@ export default function TotalBalance({ selectedDate }) {
       toast.error("Failed to update balance")
     }
   }
+
   return (
     <div className="w-full px-4">
       <div className="bg-neutral-800 rounded-xl p-4 shadow-md text-center space-y-3">
@@ -108,7 +115,7 @@ export default function TotalBalance({ selectedDate }) {
         </div>
       </div>
 
-      {/* Modal (untouched) */}
+      {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
           <div className="bg-neutral-900 text-white px-6 pt-5 pb-4 rounded-xl w-[320px] space-y-4 shadow-xl">
@@ -116,12 +123,12 @@ export default function TotalBalance({ selectedDate }) {
             <div className="text-sm text-gray-400 mb-1">
               Current Balance: {total.toFixed(2)} €
             </div>
-              <AmountInput
-                value={actualBalance}
-                setValue={setActualBalance}
-                isPositive={isPositive}
-                setIsPositive={setIsPositive}
-              />
+            <AmountInput
+              value={actualBalance}
+              setValue={setActualBalance}
+              isPositive={isPositive}
+              setIsPositive={setIsPositive}
+            />
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setIsModalOpen(false)}

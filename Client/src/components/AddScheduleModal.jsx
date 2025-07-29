@@ -1,4 +1,4 @@
-// ✅ AddScheduleModal.jsx — Updated to support Draft toggle with `isPending`
+// ✅ AddScheduleModal.jsx — Routes items based on `isPending` to correct group
 
 import React, { useState, useEffect } from 'react'
 import useFinance from '../state/finance'
@@ -10,6 +10,7 @@ import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
 import { categoryOptions, iconOptions } from "../constants/categories"
 import AmountInput from "./AmountInput"
+import GroupSelectorModal from './GroupSelectorModal'
 
 export default function AddScheduleModal({
   isOpen,
@@ -29,25 +30,29 @@ export default function AddScheduleModal({
   const [repeat, setRepeat] = useState(true)
   const [repeatEndDate, setRepeatEndDate] = useState('')
   const [isPositive, setIsPositive] = useState(true)
-  const [isPending, setIsPending] = useState(false) // ✅ new state
+  const [isPending, setIsPending] = useState(false)
+  const [targetGroupId, setTargetGroupId] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showGroupSelector, setShowGroupSelector] = useState(false)
 
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
-  const groupTitle = scheduleGroups[groupId]?.title || 'Untitled'
   const addItemToGroup = useFinance((state) => state.addItemToGroup)
+  const editItemInGroup = useFinance((state) => state.editItemInGroup)
+  const deleteItemFromGroup = useFinance((state) => state.deleteItemFromGroup)
 
   useEffect(() => {
     if (defaultValues) {
       setTitle(defaultValues.title || '')
       const rawAmount = parseFloat(defaultValues.amount)
       setIsPositive(rawAmount >= 0)
-      setAmount(Math.abs(rawAmount).toString() || '')
+      setAmount(!isNaN(rawAmount) && rawAmount !== 0 ? Math.abs(rawAmount).toString() : '')
       setDate(defaultValues.date || '')
       setCategory(defaultValues.category || '')
       setIcon(defaultValues.icon || 'ReceiptIndianRupee')
       setRepeat(defaultValues.repeat ?? true)
       setRepeatEndDate(defaultValues.repeatEndDate || '')
-      setIsPending(defaultValues.isPending || false) // ✅ populate from edit
+      setIsPending(defaultValues.isPending || false)
+      setTargetGroupId(groupId || null)
     }
   }, [isOpen, defaultValues])
 
@@ -59,6 +64,7 @@ export default function AddScheduleModal({
     }
 
     const parsedAmount = parseFloat(isPositive ? amount : "-" + amount)
+
     const newItem = {
       title,
       amount: parsedAmount,
@@ -67,15 +73,32 @@ export default function AddScheduleModal({
       category,
       repeat,
       repeatEndDate: repeat ? repeatEndDate : '',
-      isPending // ✅ include in item
+      isPending,
     }
 
+    if (!targetGroupId) {
+      toast.error("No group found for this item type")
+      return
+    }
+
+    // ✅ Handle Edit Mode with group transfer if needed
     if (isEditMode && onSave) {
-      onSave(newItem)
-    } else if (onSave) {
-      onSave(newItem)
-    } else {
-      addItemToGroup(groupId, newItem)
+      const isSameGroup = groupId === targetGroupId
+
+      if (isSameGroup) {
+        editItemInGroup(groupId, defaultValues.id, newItem)
+      } else {
+        deleteItemFromGroup(groupId, defaultValues.id)
+        addItemToGroup(targetGroupId, newItem, defaultValues.id)
+      }
+
+      onSave(newItem) // Optional callback
+    }
+
+    // ✅ Add new item to correct group
+    if (!isEditMode) {
+      addItemToGroup(targetGroupId, newItem)
+      onSave?.(newItem)
     }
 
     onClose()
@@ -87,6 +110,16 @@ export default function AddScheduleModal({
     ? new Date(fallbackMonthDate)
     : null
 
+  const handleToggleIsPending = () => {
+    const otherGroups = Object.values(scheduleGroups).filter((g) => g.isPending === !isPending)
+    if (otherGroups.length === 0) {
+      toast.error("No group available for this type")
+      return
+    }
+    setIsPending(!isPending)
+    setShowGroupSelector(true)
+  }
+
   return (
     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
@@ -94,7 +127,7 @@ export default function AddScheduleModal({
         <Dialog.Panel className="bg-zinc-900 rounded-lg w-full max-w-sm p-4 shadow-xl border border-zinc-700">
           <div className="flex justify-between items-center mb-3">
             <Dialog.Title className="text-base font-semibold text-white">
-              {isEditMode ? 'Edit Schedule Item' : `Add Item to ${groupTitle}`}
+              {isEditMode ? 'Edit Schedule Item' : 'Add New Item'}
             </Dialog.Title>
             <button onClick={onClose} className="text-gray-400 hover:text-white">
               <X size={18} />
@@ -125,14 +158,14 @@ export default function AddScheduleModal({
               </div>
             </div>
 
-            {/* Category & Date */}
+            {/* Category and Date */}
             <div className="flex gap-2">
               <div className="w-1/2">
-                <label className="block mb-0.5 text-sm text-white">Category</label>
+                <label className="block mb-0.5 text-sm">Category</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-2 py-1.5 text-sm bg-zinc-800 rounded-md border border-zinc-600 text-white"
+                  className="w-full px-2 py-1.5 bg-zinc-800 rounded-md border border-zinc-600"
                 >
                   <option value="">Select Category</option>
                   {categoryOptions.map((c) => (
@@ -141,29 +174,28 @@ export default function AddScheduleModal({
                 </select>
               </div>
               <div className="w-1/2">
-                <label className="block mb-0.5 text-sm text-white">
-                  Date <span className="text-red-400">*</span>
-                </label>
+                <label className="block mb-0.5 text-sm">Date *</label>
                 <DatePicker
                   selected={selectedDateForCalendar}
                   onChange={(date) => setDate(date.toISOString().split("T")[0])}
                   dateFormat="dd-MM-yyyy"
-                  placeholderText="Select a date"
-                  className="w-full px-2 py-1.5 text-sm bg-zinc-800 border rounded-md text-white focus:outline-none"
+                  placeholderText="Select date"
+                  className="w-full px-2 py-1.5 bg-zinc-800 border rounded-md text-white"
                 />
               </div>
             </div>
 
-            {/* Icon Selection */}
+            {/* Icon Picker */}
             <div>
-              <label className="block text-sm text-white mb-1">Select Icon</label>
+              <label className="block text-sm mb-1">Select Icon</label>
               <div className="flex flex-wrap gap-2">
                 {Object.entries(iconOptions).map(([key, Icon]) => (
                   <button
                     key={key}
                     type="button"
-                    className={`p-1.5 rounded-md w-8 h-8 flex items-center justify-center
-                      ${icon === key ? "bg-blue-500 text-white" : "bg-neutral-800 text-white"}`}
+                    className={`p-1.5 rounded-md w-8 h-8 flex items-center justify-center ${
+                      icon === key ? "bg-blue-500" : "bg-neutral-800"
+                    }`}
                     onClick={() => setIcon(key)}
                   >
                     <Icon size={16} />
@@ -172,32 +204,36 @@ export default function AddScheduleModal({
               </div>
             </div>
 
-            {/* Repeat & Draft Toggle */}
+            {/* Toggles */}
             <div className="flex items-center gap-4">
+              {/* Repeat toggle */}
               <div className="flex flex-col">
                 <label className="text-sm mb-0.5">Repeat Monthly</label>
                 <button
                   type="button"
                   onClick={() => setRepeat(!repeat)}
-                  className={`relative w-10 h-5 rounded-full ${repeat ? "bg-blue-500" : "bg-zinc-600"}`}
+                  className={`w-10 h-5 rounded-full ${repeat ? "bg-blue-500" : "bg-zinc-600"}`}
                 >
                   <span
-                    className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform
-                      ${repeat ? "translate-x-5" : "translate-x-0"}`}
+                    className={`block w-4 h-4 bg-white rounded-full transition-transform ${
+                      repeat ? "translate-x-5" : "translate-x-0"
+                    }`}
                   />
                 </button>
               </div>
 
+              {/* Save as Draft toggle */}
               <div className="flex flex-col">
                 <label className="text-sm mb-0.5">Save as Draft</label>
                 <button
                   type="button"
-                  onClick={() => setIsPending(!isPending)}
-                  className={`relative w-10 h-5 rounded-full ${isPending ? "bg-yellow-500" : "bg-zinc-600"}`}
+                  onClick={handleToggleIsPending}
+                  className={`w-10 h-5 rounded-full ${isPending ? "bg-yellow-500" : "bg-zinc-600"}`}
                 >
                   <span
-                    className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform
-                      ${isPending ? "translate-x-5" : "translate-x-0"}`}
+                    className={`block w-4 h-4 bg-white rounded-full transition-transform ${
+                      isPending ? "translate-x-5" : "translate-x-0"
+                    }`}
                   />
                 </button>
               </div>
@@ -211,13 +247,33 @@ export default function AddScheduleModal({
                   selected={repeatEndDate ? new Date(repeatEndDate) : null}
                   onChange={(date) => setRepeatEndDate(date.toISOString().split("T")[0])}
                   dateFormat="dd-MM-yyyy"
-                  placeholderText="Select end date"
-                  className="w-full px-2 py-1.5 text-sm bg-zinc-800 border rounded-md text-white focus:outline-none"
+                  readOnly={window.innerWidth < 768}
+                  className="w-full px-2 py-1.5 bg-zinc-800 border rounded-md text-white"
                 />
               </div>
             )}
 
-            {/* Submit Buttons */}
+            {targetGroupId && (
+            <div>
+              <label className="text-sm mb-0.5 flex items-center justify-between">
+                Selected Group
+                <button
+                  type="button"
+                  onClick={() => setShowGroupSelector(true)}
+                  className="text-xs text-blue-400 hover:underline"
+                >
+                  Change
+                  </button>
+                </label>
+                <div className="w-full px-3 py-2 bg-zinc-800 rounded-md text-white border border-zinc-700">
+                  {scheduleGroups[targetGroupId]?.title || "Untitled Group"}
+                </div>
+              </div>
+            )}
+
+
+
+            {/* Submit */}
             <div className="flex gap-2">
               <button
                 type="submit"
@@ -237,12 +293,11 @@ export default function AddScheduleModal({
             </div>
           </form>
 
-          {/* Confirm Delete Dialog */}
           {showDeleteConfirm && (
             <ConfirmDialog
               isOpen={true}
               title="Delete this item?"
-              description="This will permanently delete the scheduled item."
+              description="This will permanently delete the item."
               confirmLabel="Delete"
               cancelLabel="Cancel"
               onConfirm={() => {
@@ -251,6 +306,19 @@ export default function AddScheduleModal({
                 onClose()
               }}
               onCancel={() => setShowDeleteConfirm(false)}
+            />
+          )}
+          {showGroupSelector && (
+            <GroupSelectorModal
+              isOpen={true}
+              isPending={isPending}
+              onClose={() => setShowGroupSelector(false)}
+              title="Select Group"
+              groupOptions={Object.values(scheduleGroups).filter(g => g.isPending === isPending)}
+              onSelect={(id) => {
+                setTargetGroupId(id)
+                setShowGroupSelector(false)
+              }}
             />
           )}
         </Dialog.Panel>

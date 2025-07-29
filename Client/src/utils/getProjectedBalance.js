@@ -1,5 +1,3 @@
-// utils/getProjectedBalance.js
-
 export default function getProjectedBalance(scheduleGroupsObj, selectedDate) {
   if (!scheduleGroupsObj || !selectedDate) return 0;
 
@@ -10,6 +8,8 @@ export default function getProjectedBalance(scheduleGroupsObj, selectedDate) {
 
   // 🔄 Iterate over each group (object structure)
   Object.entries(scheduleGroupsObj).forEach(([groupId, group]) => {
+    if (group.isPending) return // ✅ SKIP drafts
+
     const items = group.items || {};
 
     // 🔄 Iterate over each item in the group (also object structure)
@@ -45,7 +45,7 @@ export default function getProjectedBalance(scheduleGroupsObj, selectedDate) {
           if (!item.repeatEndDate || current <= repeatEnd) {
             total += item.amount;
           }
-          current.setMonth(current.getMonth() + 1); // move to next month
+          current.setMonth(current.getMonth() + 1);
         }
       }
     });

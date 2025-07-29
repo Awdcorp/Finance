@@ -101,14 +101,7 @@ export default function Dashboard({ user }) {
 
           {/* RIGHT */}
           <div>
-            <ScheduleList
-              title={`${selectedDate.toLocaleString("default", {
-                month: "long",
-                year: "numeric",
-              })}'s Schedule`}
-              items={currentMonthItems}
-              selectedDate={selectedDate}
-            />
+            <ScheduleList selectedDate={selectedDate} />
 
             <button
               onClick={() => setIsAddGroupOpen(true)}
@@ -129,7 +122,7 @@ export default function Dashboard({ user }) {
           confirmLabel="Add"
           initialValue=""
           onConfirm={(title) => {
-            addScheduleGroup({ title, items: [] });
+            addScheduleGroup(title);
             toast.success("Schedule group added");
             setIsAddGroupOpen(false);
           }}

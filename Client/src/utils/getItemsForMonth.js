@@ -4,6 +4,8 @@ export default function getItemsForMonth(scheduleGroups, selectedDate) {
   const currentMonthItems = [];
 
   Object.entries(scheduleGroups).forEach(([groupId, group]) => {
+    if (group.isPending) return // ✅ SKIP drafts/pending items
+
     Object.entries(group.items || {}).forEach(([itemId, item]) => {
       const itemDate = new Date(item.date);
 

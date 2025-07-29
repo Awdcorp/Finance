@@ -1,21 +1,17 @@
-// ✅ Updated PendingGroupList to work with unified ID-based structure
-// Uses scheduleGroups with isPending: true instead of separate pendingGroups
-// Handles edit, delete, and add operations using groupId/itemId (not index-based)
+// ✅ Updated PendingGroupList to fully support cross-group save/edit
+// Moves item to correct group if `isPending` changes on save
 
 import React, { useState, useRef, useEffect } from "react"
 import useFinance from "../state/finance"
 import AddScheduleModal from "./AddScheduleModal"
 import TextInputModal from "./TextInputModal"
 import ConfirmDialog from "./ConfirmDialog"
-import AddPendingItemModal from "./AddPendingItemModal"
 import { iconMap, categoryIcons, categoryColors } from "../constants/categories"
 import { Dialog } from "@headlessui/react"
 import {
-  Pencil,
-  Trash2,
   Edit3,
+  Trash2,
   MoreVertical,
-  FileClock,
   CirclePlus,
   IndianRupee,
   ReceiptIndianRupee,
@@ -35,9 +31,7 @@ export default function PendingGroupList({ selectedDate }) {
   const [editGroupInfo, setEditGroupInfo] = useState(null)
   const [addItemGroupId, setAddItemGroupId] = useState(null)
   const [selectedItem, setSelectedItem] = useState(null)
-  const [actionChoice, setActionChoice] = useState(null)
   const [deleteGroupId, setDeleteGroupId] = useState(null)
-  const [deleteDraftInfo, setDeleteDraftInfo] = useState(null)
   const menuRef = useRef(null)
 
   useEffect(() => {
@@ -138,11 +132,11 @@ export default function PendingGroupList({ selectedDate }) {
             category: "",
             repeat: false,
             repeatEndDate: "",
+            isPending: true
           }}
           groupId={addItemGroupId}
           fallbackMonthDate={selectedDate}
           onSave={(itemData) => {
-            addItem(addItemGroupId, itemData)
             toast.success("Item added to pending group")
             setAddItemGroupId(null)
           }}
@@ -155,9 +149,7 @@ export default function PendingGroupList({ selectedDate }) {
         <AddScheduleModal
           isOpen={true}
           isEditMode={true}
-          defaultValues={
-            scheduleGroups[selectedItem.groupId]?.items[selectedItem.itemId] || {}
-          }
+          defaultValues={scheduleGroups[selectedItem.groupId]?.items[selectedItem.itemId] || {}}
           groupId={selectedItem.groupId}
           fallbackMonthDate={selectedDate}
           onSave={(itemData) => {

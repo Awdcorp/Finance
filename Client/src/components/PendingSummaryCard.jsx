@@ -1,18 +1,13 @@
-// components/PendingSummaryCard.jsx
-
 import React from "react";
 import useFinance from "../state/finance";
 import { IndianRupee, FileClock } from "lucide-react";
 
 export default function PendingSummaryCard() {
-  // ✅ Fallback to empty object if pendingGroups is null/undefined
-  const pendingGroups = useFinance((state) => state.pendingGroups) || {};
+  const pendingGroups = useFinance((state) => state.pendingGroups) || [];
 
-  // ✅ Flatten all pending items across object-based groups
-  const allPendingItems = Object.values(pendingGroups)
+  const allPendingItems = pendingGroups
     .flatMap((group) => Object.values(group.items || {}));
 
-  // ✅ Calculate total and count
   const totalAmount = allPendingItems.reduce((acc, item) => acc + item.amount, 0).toFixed(2);
   const itemCount = allPendingItems.length;
 
@@ -24,16 +19,12 @@ export default function PendingSummaryCard() {
       </div>
 
       <div className="flex justify-between items-center text-sm text-gray-300 mb-1">
-        <div className="flex items-center gap-2">
-          <span>Total Pending</span>
-        </div>
+        <span>Total Pending</span>
         <span className="text-red-400 font-semibold">{totalAmount} ₹</span>
       </div>
 
       <div className="flex justify-between items-center text-sm text-gray-300">
-        <div className="flex items-center gap-2">
-          <span>Items Pending</span>
-        </div>
+        <span>Items Pending</span>
         <span className="text-white font-medium">{itemCount}</span>
       </div>
     </div>

@@ -7,6 +7,35 @@ import { nanoid } from "nanoid"
 
 const DEFAULT_DASHBOARD = { id: "default", name: "My Budget" }
 
+const createDefaultGroups = () => {
+  const scheduledId = nanoid()
+  const pendingId = nanoid()
+  return {
+    [scheduledId]: {
+      id: scheduledId,
+      title: "This Month’s Schedule",
+      isPending: false,
+      items: {},
+      tags: [],
+      archived: false,
+    },
+    [pendingId]: {
+      id: pendingId,
+      title: "General Drafts",
+      isPending: true,
+      items: {},
+      tags: [],
+      archived: false,
+    },
+  }
+}
+
+const createEmptyDashboardData = () => ({
+  scheduleGroups: {},
+  lastModified: Date.now(),
+  sharedWith: [],
+})
+
 const useFinance = create((set, get) => ({
   userId: null,
 
@@ -15,7 +44,7 @@ const useFinance = create((set, get) => ({
 
   dashboardData: {
     default: {
-      scheduleGroups: {},
+      scheduleGroups: createDefaultGroups(),
       lastModified: Date.now(),
       sharedWith: [],
     },
@@ -37,14 +66,15 @@ const useFinance = create((set, get) => ({
     set({ scheduleGroups })
   },
 
-  loadUserData: async (userId) => {
+  loadUserData: async (userId) =>  {
     const userDocRef = doc(db, "users", userId)
+    const fallbackGroups = createDefaultGroups()
     const fallback = {
       dashboards: [DEFAULT_DASHBOARD],
       currentDashboardId: "default",
       dashboardData: {
         default: {
-          scheduleGroups: {},
+          scheduleGroups: fallbackGroups,
           lastModified: Date.now(),
           sharedWith: [],
         },
@@ -191,11 +221,11 @@ const useFinance = create((set, get) => ({
     get().updateDashboardGroups("scheduleGroups", updated)
   },
 
-  addItemToGroup: (groupId, itemData) => {
+  addItemToGroup: (groupId, itemData, customId = null) => {
     const { scheduleGroups } = get()
     const group = scheduleGroups[groupId]
     if (!group) return
-    const id = nanoid()
+    const id = customId || nanoid()
     const newItem = { id, ...itemData, archived: false }
     const updatedItems = { ...group.items, [id]: newItem }
     const updatedGroup = { ...group, items: updatedItems }
@@ -232,10 +262,14 @@ const useFinance = create((set, get) => ({
 
   updateDashboardGroups: (key, newGroups) => {
     const { currentDashboardId, dashboardData } = get()
+
+    // ✅ Ensure the current dashboard entry exists
+    const existingDashboard = dashboardData[currentDashboardId] || createEmptyDashboardData()
+
     const updated = {
       ...dashboardData,
       [currentDashboardId]: {
-        ...dashboardData[currentDashboardId],
+        ...existingDashboard,
         [key]: newGroups,
         lastModified: Date.now(),
       },
@@ -248,16 +282,27 @@ const useFinance = create((set, get) => ({
     const { dashboards, dashboardData } = get()
     const id = nanoid()
     const newDash = { id, name }
-    const newList = [...dashboards, newDash]
+
+    const scheduleGroups = createDefaultGroups()
+
     const newData = {
       ...dashboardData,
       [id]: {
-        scheduleGroups: {},
+        scheduleGroups,
         sharedWith: [],
         lastModified: Date.now(),
       },
     }
-    set({ dashboards: newList, dashboardData: newData })
+
+    const newList = [...dashboards, newDash]
+
+    set({
+      dashboards: newList,
+      dashboardData: newData,
+      currentDashboardId: id,
+      scheduleGroups,
+    })
+
     get().saveUserData()
   },
 
@@ -278,7 +323,7 @@ const useFinance = create((set, get) => ({
     const fallbackId = list[0]?.id || "default"
     set({
       dashboards: list.length > 0 ? list : [DEFAULT_DASHBOARD],
-      dashboardData: list.length > 0 ? data : { default: { scheduleGroups: {}, lastModified: Date.now(), sharedWith: [] } },
+      dashboardData: list.length > 0 ? data : { default: createEmptyDashboardData() },
       currentDashboardId: fallbackId,
     })
     get().syncDashboard()
