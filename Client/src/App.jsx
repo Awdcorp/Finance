@@ -110,7 +110,7 @@ function App() {
             }
           />
         </Routes>
-        <Toaster position="top-right" />
+        <Toaster position="bottom-center" />
       </div>
       {showInstallBanner && (
         <div className="fixed bottom-4 left-4 right-4 bg-neutral-900 border border-yellow-500 text-white px-4 py-3 rounded-xl shadow-lg flex justify-between items-center z-50">

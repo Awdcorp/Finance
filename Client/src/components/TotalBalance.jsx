@@ -46,22 +46,14 @@ export default function TotalBalance({ selectedDate }) {
     const selectedMonth = selectedDate.getMonth()
     const selectedYear = selectedDate.getFullYear()
 
-    // ✅ New logic: find first matching groupId with a date in the selected month
-    const scheduleGroupEntries = Object.entries(scheduleGroups).filter(([_, g]) => !g.isPending)
-    let targetGroupId = scheduleGroupEntries[0]?.[0] // fallback to first scheduled group
+    // ✅ Always add to the "Daily Transactions" group
+    const targetGroupId = Object.keys(scheduleGroups).find(
+      (id) => scheduleGroups[id].title === "Daily Transactions" && !scheduleGroups[id].isPending
+    )
 
-    for (const [groupId, group] of scheduleGroupEntries) {
-      const match = Object.values(group.items || {}).some((item) => {
-        const date = new Date(item.date)
-        return (
-          date.getMonth() === selectedMonth &&
-          date.getFullYear() === selectedYear
-        )
-      })
-      if (match) {
-        targetGroupId = groupId
-        break
-      }
+    if (!targetGroupId) {
+      toast.error("Couldn't find 'Daily Transactions' group")
+      return
     }
 
     try {

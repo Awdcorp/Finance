@@ -37,7 +37,9 @@ export default function ScheduleList({ selectedDate }) {
 
   return (
     <div className="px-4 relative">
-      {Object.values(scheduleGroups).filter((g) => !g.isPending).map((group) => {
+      {Object.values(scheduleGroups)
+        .filter((g) => !g.isPending)
+        .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)).map((group) => {
         const items = getItemsForMonth([group], selectedDate)
 
         const totalAmount = items
@@ -99,7 +101,9 @@ export default function ScheduleList({ selectedDate }) {
                   No items in this group yet
                 </div>
               ) : (
-                items.map((item) => {
+                items
+                .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0)) // or orderIndex
+                .map((item) => {
                   const Icon = categoryIcons[item.category?.toLowerCase()] || categoryIcons.default
                   const colorClass = categoryColors[item.category?.toLowerCase()] ||
                     (item.amount < 0 ? "bg-red-500/20 text-red-400" : "bg-green-500/20 text-green-400")
@@ -188,8 +192,12 @@ export default function ScheduleList({ selectedDate }) {
         initialValue={editGroupInfo?.title || ""}
         confirmLabel="Save"
         onConfirm={(newTitle) => {
-          renameGroup(editGroupInfo.id, newTitle)
-          toast.success("Group renamed")
+          const success = renameGroup(editGroupInfo.id, newTitle)
+          if (!success) {
+            toast.error("This group is protected and cannot be renamed.")
+          } else {
+            toast.success("Group renamed")
+          }
           setEditGroupInfo(null)
         }}
         validate={(val) => val.trim() !== ""}
@@ -203,8 +211,12 @@ export default function ScheduleList({ selectedDate }) {
         confirmLabel="Delete"
         cancelLabel="Cancel"
         onConfirm={() => {
-          deleteGroup(deleteGroupId)
-          toast.success("Group deleted")
+          const success = deleteGroup(deleteGroupId)
+          if (!success) {
+            toast.error("This group is protected and cannot be deleted.")
+          } else {
+            toast.success("Group deleted")
+          }
           setDeleteGroupId(null)
         }}
         onCancel={() => setDeleteGroupId(null)}

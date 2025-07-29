@@ -2,13 +2,14 @@ import React, { useState } from "react"
 import BottomNav from "../components/BottomNav"
 import SidebarNav from "../components/SidebarNav"
 import useFinance from "../state/finance"
-import getItemsForMonth from "../utils/getItemsForMonth";
-import BalanceCard from "../components/BalanceCard";
+import getItemsForMonth from "../utils/getItemsForMonth"
+import BalanceCard from "../components/BalanceCard"
 import {
   PieChart, Pie, Cell, Tooltip,
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer
 } from "recharts"
-import { ArrowDownRight, ArrowUpRight, BarChart3,
+import {
+  ArrowDownRight, ArrowUpRight, BarChart3,
   PieChart as PieIcon,
   Activity,
   CalendarClock,
@@ -22,19 +23,18 @@ export default function Stats() {
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
   const [selectedMonth, setSelectedMonth] = useState(new Date())
 
-  const rawItems = getItemsForMonth(scheduleGroups, selectedMonth);
+  const rawItems = getItemsForMonth(scheduleGroups, selectedMonth)
 
-    const filteredItems = rawItems.map((item) => {
-    // Match this item to its group index using the original item (by title & amount)
-    const groupIndex = scheduleGroups.findIndex(group =>
-        group.items.some(original =>
+  const filteredItems = rawItems.map((item) => {
+    const groupId = Object.keys(scheduleGroups).find(id =>
+      Object.values(scheduleGroups[id].items).some(original =>
         original.title === item.title &&
         original.amount === item.amount &&
         new Date(original.date).getTime() === new Date(item.originalDate || item.date).getTime()
-        )
-    );
-    return { ...item, groupIndex };
-    });
+      )
+    )
+    return { ...item, groupId }
+  })
 
   const incomeItems = filteredItems.filter((i) => i.amount > 0)
   const expenseItems = filteredItems.filter((i) => i.amount < 0)
@@ -49,7 +49,7 @@ export default function Stats() {
     const key = item.category || "Other"
     categorySummary[key] = (categorySummary[key] || 0) + item.amount
 
-    const groupTitle = scheduleGroups[item.groupIndex]?.title || "Untitled"
+    const groupTitle = scheduleGroups[item.groupId]?.title || "Untitled"
     groupSummary[groupTitle] = (groupSummary[groupTitle] || 0) + item.amount
 
     if (item.repeat) repeatCount++
@@ -65,7 +65,6 @@ export default function Stats() {
         0,
         (end.getFullYear() - now.getFullYear()) * 12 + (end.getMonth() - now.getMonth())
       )
-
       return {
         title: item.title || "Untitled",
         amount: item.amount,
@@ -83,19 +82,14 @@ export default function Stats() {
 
   return (
     <div className="min-h-screen bg-neutral-900 text-white flex flex-col lg:flex-row">
-
-      {/* Sidebar for Desktop */}
       <SidebarNav />
 
-      {/* Main Content */}
       <div className="flex-1 lg:ml-64 px-4 pt-6 pb-28 w-full max-w-screen-xl mx-auto">
+        <h2 className="text-xl font-semibold mb-6 flex justify-center items-center gap-2 text-white-300">
+          <BarChart3 className="w-6 h-6 text-yellow-400" /> Statistics
+        </h2>
 
-            <h2 className="text-xl font-semibold mb-6 flex justify-center items-center gap-2 text-white-300">
-            <BarChart3 className="w-6 h-6 text-yellow-400" /> Statistics
-            </h2>
-
-        {/* Month Selector */}
-        <div className="flex justify-between items-center  text-white mb-8 px-2">
+        <div className="flex justify-between items-center text-white mb-8 px-2">
           <button onClick={() => handleMonthChange(-1)} className="text-2xl">←</button>
           <span className="text-lg font-semibold">
             {selectedMonth.toLocaleString("default", { month: "long", year: "numeric" })}
@@ -103,19 +97,14 @@ export default function Stats() {
           <button onClick={() => handleMonthChange(1)} className="text-2xl">→</button>
         </div>
 
-        {/* Grid for charts + cards */}
         <div className="grid lg:grid-cols-2 gap-6">
+          <div className="flex justify-center">
+            <div className="flex justify-center lg:justify-start gap-4 mt-2 px-4 max-w-md w-full">
+              <BalanceCard label="Income" amount={incomeTotal} type="income" />
+              <BalanceCard label="Expenses" amount={Math.abs(expenseTotal)} type="expense" />
+            </div>
+          </div>
 
-          {/* Summary Cards */}
-<div className="flex justify-center">
-  <div className="flex justify-center lg:justify-start gap-4 mt-2 px-4 max-w-md w-full">
-    <BalanceCard label="Income" amount={incomeTotal} type="income" />
-    <BalanceCard label="Expenses" amount={Math.abs(expenseTotal)} type="expense" />
-  </div>
-</div>
-
-
-          {/* Income vs Expenses */}
           <div className="bg-neutral-800 rounded-xl p-4 shadow-md hover:shadow-lg transition-all">
             <div className="text-center text-sm mb-3 font-medium text-gray-300 flex justify-center items-center gap-2">
               <Activity size={16} /> Income vs Expenses
@@ -131,7 +120,6 @@ export default function Stats() {
             </ResponsiveContainer>
           </div>
 
-          {/* Category Breakdown */}
           <div className="bg-neutral-800 rounded-xl p-4 shadow-md">
             <div className="text-center text-sm mb-3 font-medium text-gray-300 flex justify-center items-center gap-2">
               <PieIcon size={16} /> Category Breakdown
@@ -156,7 +144,6 @@ export default function Stats() {
             </ResponsiveContainer>
           </div>
 
-          {/* Group Summary */}
           <div className="bg-neutral-800 rounded-xl p-4 shadow-md">
             <div className="text-center text-sm mb-3 font-medium text-gray-300 flex justify-center items-center gap-2">
               <Folders size={16} /> Group Summary
@@ -173,7 +160,6 @@ export default function Stats() {
             </ul>
           </div>
 
-          {/* Repeat Pie Chart */}
           <div className="bg-neutral-800 rounded-xl p-4 shadow-md">
             <div className="text-center text-sm mb-3 font-medium text-gray-300 flex justify-center items-center gap-2">
               <Repeat2 size={16} /> Repeat vs One-Time
@@ -200,7 +186,6 @@ export default function Stats() {
             </ResponsiveContainer>
           </div>
 
-          {/* Recurring Table */}
           {recurringStats.length > 0 && (
             <div className="bg-neutral-800 rounded-xl p-4 col-span-full shadow-md">
               <div className="text-center text-sm mb-3 font-medium text-gray-300 flex justify-center items-center gap-2">
@@ -236,7 +221,6 @@ export default function Stats() {
           )}
         </div>
 
-        {/* Bottom Nav for Mobile */}
         <div className="lg:hidden mt-6">
           <BottomNav />
         </div>

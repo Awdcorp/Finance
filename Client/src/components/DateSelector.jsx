@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { CalendarDays } from "lucide-react";
 import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import "../styles/datepicker.css";
 
 export default function DateSelector({
   label = "Select Date",
@@ -28,7 +28,7 @@ export default function DateSelector({
       {/* Button to open calendar */}
       <button
         type="button"
-        className="w-full px-3 py-2 bg-zinc-800 border border-zinc-600 rounded-md text-left flex items-center gap-2"
+        className="w-full px-2 py-1.5 bg-zinc-800 border border-zinc-600 rounded-md text-left flex items-center gap-2"
         onClick={() => setShowCalendar(true)}
       >
         <CalendarDays size={16} />
@@ -51,13 +51,18 @@ export default function DateSelector({
         onClick={(e) => e.stopPropagation()}
       >
         <DatePicker
-          selected={selectedDate}
-          onChange={(d) => {
+        selected={selectedDate}
+        onChange={(d) => {
             setDate(d.toISOString().split("T")[0]);
             setShowCalendar(false);
-          }}
-          inline
-          calendarStartDay={1}
+        }}
+        inline
+        calendarStartDay={1}
+        showMonthDropdown
+        showYearDropdown
+        dropdownMode="select"
+        yearDropdownItemNumber={50}
+        scrollableYearDropdown
         />
       </div>
     </div>

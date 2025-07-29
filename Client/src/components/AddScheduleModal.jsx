@@ -188,14 +188,14 @@ export default function AddScheduleModal({
                   ))}
                 </select>
               </div>
+               <div className="w-1/2">
               {/* 📅 Primary Date Selector */}
-<DateSelector
-  label="Date *"
-  date={date}
-  setDate={setDate}
-  fallbackMonthDate={fallbackMonthDate}
-/>
-
+              <DateSelector
+                label="Date *"
+                date={date}
+                setDate={setDate}
+                fallbackMonthDate={fallbackMonthDate}
+              /></div>
             </div>
 
             {/* Icon Picker */}

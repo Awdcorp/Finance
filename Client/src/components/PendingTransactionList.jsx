@@ -46,7 +46,9 @@ export default function PendingGroupList({ selectedDate }) {
 
   return (
     <div className="px-4 mt-4 relative">
-      {Object.values(scheduleGroups).filter((g) => g.isPending).map((group) => {
+      {Object.values(scheduleGroups)
+        .filter((g) => g.isPending)
+        .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)).map((group) => {
         const groupItems = Object.values(group.items || {})
         const totalAmount = groupItems.reduce((acc, item) => acc + item.amount, 0)
 
@@ -89,7 +91,9 @@ export default function PendingGroupList({ selectedDate }) {
               {groupItems.length === 0 ? (
                 <div className="text-center text-gray-500 text-sm italic">No pending items in this group yet</div>
               ) : (
-                groupItems.map((item) => (
+                groupItems
+                .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)) // 🟢 Maintain item order
+                .map((item) => (
                   <div key={item.id} className="py-3 flex justify-between items-start text-sm cursor-pointer border-b border-neutral-700 last:border-b-0" onClick={() => setSelectedItem({ groupId: group.id, itemId: item.id })}>
                     <div className="flex gap-3 items-center">
                       <div className="text-xl">{iconMap[item.icon] || <ReceiptIndianRupee size={20} className="text-yellow-400" />}</div>

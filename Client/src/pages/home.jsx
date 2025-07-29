@@ -16,7 +16,7 @@ import SyncStatusBadge from "../components/SyncStatusBadge";
 
 export default function Dashboard({ user }) {
   const scheduleGroups = useFinance((state) => state.scheduleGroups);
-  const currentDashboard = useFinance((state) => state.currentDashboard);
+  const currentDashboardId = useFinance((state) => state.currentDashboardId);
   const syncDashboard = useFinance((state) => state.syncDashboard);
   const loadUserData = useFinance((state) => state.loadUserData);
   const addScheduleGroup = useFinance((state) => state.addScheduleGroup);
@@ -34,9 +34,10 @@ export default function Dashboard({ user }) {
 
   // Sync data and reset calendar when dashboard changes
   useEffect(() => {
+  console.log("Dashboard changed → resetting calendar month");
     syncDashboard();
     setSelectedDate(new Date());
-  }, [currentDashboard]);
+  }, [currentDashboardId]);
 
   // Change calendar month
   const handleMonthChange = (offset) => {
@@ -68,19 +69,21 @@ export default function Dashboard({ user }) {
       <SidebarNav />
 
       {/* Main */}
-      <div className="flex-1 lg:ml-64 px-4 pt-6 pb-[120px] flex flex-col gap-6">
+      <div className="flex-1 lg:ml-64 pt-6 pb-[120px] flex flex-col gap-6">
         {/* Header */}
-        <div className="relative">
-          <div className="flex justify-center">
-            <DashboardSelector />
-          </div>
-          <div className="absolute top-0 right-0 pr-2">
-            <SyncStatusBadge />
-          </div>
-        </div>
+<div className="fixed top-0 left-0 right-0 z-40 bg-neutral-900 px-4 pt-4 pb-2">
+  {/* Dashboard Selector + Sync */}
+<div className="relative flex items-center justify-center mb-2">
+  <div className="absolute right-4">
+    <SyncStatusBadge />
+  </div>
+  <DashboardSelector />
+</div>
 
+
+</div>
         {/* Month navigation */}
-        <div className="flex justify-between items-center text-white px-2">
+        <div className="w-full px-4 pt-10 flex justify-between items-center text-white px-2">
           <button onClick={() => handleMonthChange(-1)} className="text-2xl">←</button>
           <span className="text-lg font-semibold">
             {selectedDate.toLocaleString("default", { month: "long", year: "numeric" })}

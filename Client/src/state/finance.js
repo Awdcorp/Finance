@@ -9,6 +9,7 @@ const DEFAULT_DASHBOARD = { id: "default", name: "My Budget" }
 
 const createDefaultGroups = () => {
   const scheduledId = nanoid()
+  const scheduledId2 = nanoid()
   const pendingId = nanoid()
   return {
     [scheduledId]: {
@@ -18,6 +19,19 @@ const createDefaultGroups = () => {
       items: {},
       tags: [],
       archived: false,
+      createdAt: Date.now(),
+      orderIndex: 0
+    },
+    [scheduledId2]: {
+      id: scheduledId2,
+      title: "Daily Transactions",
+      isPending: false,
+      items: {},
+      tags: [],
+      archived: false,
+      createdAt: Date.now(),
+      orderIndex: 1,
+      protected: true,
     },
     [pendingId]: {
       id: pendingId,
@@ -26,6 +40,8 @@ const createDefaultGroups = () => {
       items: {},
       tags: [],
       archived: false,
+      createdAt: Date.now(),
+      orderIndex: 1,
     },
   }
 }
@@ -197,8 +213,9 @@ const useFinance = create((set, get) => ({
 
   addScheduleGroup: (title, isPending = false, tags = []) => {
     const id = nanoid()
-    const newGroup = { id, title, isPending, items: {}, tags, archived: false }
     const { scheduleGroups } = get()
+    const nextIndex = Object.keys(scheduleGroups).length
+    const newGroup = {id, title, isPending, items: {}, tags, archived: false, createdAt: Date.now(), orderIndex: nextIndex, }
     const updated = { ...scheduleGroups, [id]: newGroup }
     set({ scheduleGroups: updated })
     get().updateDashboardGroups("scheduleGroups", updated)
@@ -206,19 +223,51 @@ const useFinance = create((set, get) => ({
 
   renameGroup: (groupId, newTitle) => {
     const { scheduleGroups } = get()
-    if (!scheduleGroups[groupId]) return
-    const updatedGroup = { ...scheduleGroups[groupId], title: newTitle }
+    const group = scheduleGroups[groupId]
+
+    // ✅ Prevent renaming if protected
+    if (group?.protected) {
+      return false
+    }
+
+    const updatedGroup = { ...group, title: newTitle }
     const updated = { ...scheduleGroups, [groupId]: updatedGroup }
     set({ scheduleGroups: updated })
     get().updateDashboardGroups("scheduleGroups", updated)
+    return true
   },
 
   deleteGroup: (groupId) => {
     const { scheduleGroups } = get()
+    const group = scheduleGroups[groupId]
+
+    // ✅ Block deletion, return false if protected
+    if (group?.protected) {
+      return false
+    }
+
     const updated = { ...scheduleGroups }
     delete updated[groupId]
     set({ scheduleGroups: updated })
     get().updateDashboardGroups("scheduleGroups", updated)
+    return true
+  },
+
+  reorderGroups: (newOrder) => {
+    const { scheduleGroups } = get()
+    const reordered = {}
+
+    newOrder.forEach((id, index) => {
+      if (scheduleGroups[id]) {
+        reordered[id] = {
+          ...scheduleGroups[id],
+          orderIndex: index,
+        }
+      }
+    })
+
+    set({ scheduleGroups: reordered })
+    get().updateDashboardGroups("scheduleGroups", reordered)
   },
 
   addItemToGroup: (groupId, itemData, customId = null) => {
@@ -226,7 +275,14 @@ const useFinance = create((set, get) => ({
     const group = scheduleGroups[groupId]
     if (!group) return
     const id = customId || nanoid()
-    const newItem = { id, ...itemData, archived: false }
+    const itemCount = Object.keys(group.items).length
+    const newItem = {
+      id,
+      ...itemData,
+      archived: false,
+      createdAt: Date.now(),         // ✅ timestamp for sorting
+      orderIndex: itemCount,         // ✅ optional for drag-sort
+    }
     const updatedItems = { ...group.items, [id]: newItem }
     const updatedGroup = { ...group, items: updatedItems }
     const updatedGroups = { ...scheduleGroups, [groupId]: updatedGroup }
@@ -256,6 +312,30 @@ const useFinance = create((set, get) => ({
     delete updatedItems[itemId]
     const updatedGroup = { ...group, items: updatedItems }
     const updatedGroups = { ...scheduleGroups, [groupId]: updatedGroup }
+    set({ scheduleGroups: updatedGroups })
+    get().updateDashboardGroups("scheduleGroups", updatedGroups)
+  },
+
+  reorderItemsInGroup: (groupId, orderedItemIds) => {
+    const { scheduleGroups } = get()
+    const group = scheduleGroups[groupId]
+    if (!group || !orderedItemIds || !Array.isArray(orderedItemIds)) return
+
+    const existingItems = group.items || {}
+    const reorderedItems = {}
+
+    orderedItemIds.forEach((id, index) => {
+      if (existingItems[id]) {
+        reorderedItems[id] = {
+          ...existingItems[id],
+          orderIndex: index, // ✅ Update item order
+        }
+      }
+    })
+
+    const updatedGroup = { ...group, items: reorderedItems }
+    const updatedGroups = { ...scheduleGroups, [groupId]: updatedGroup }
+
     set({ scheduleGroups: updatedGroups })
     get().updateDashboardGroups("scheduleGroups", updatedGroups)
   },
