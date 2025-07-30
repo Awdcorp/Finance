@@ -82,7 +82,7 @@ const useFinance = create((set, get) => ({
     set({ scheduleGroups })
   },
 
-  loadUserData: async (userId) =>  {
+  loadUserData: async (userId) => {
     const userDocRef = doc(db, "users", userId)
     const fallbackGroups = createDefaultGroups()
     const fallback = {
@@ -215,7 +215,7 @@ const useFinance = create((set, get) => ({
     const id = nanoid()
     const { scheduleGroups } = get()
     const nextIndex = Object.keys(scheduleGroups).length
-    const newGroup = {id, title, isPending, items: {}, tags, archived: false, createdAt: Date.now(), orderIndex: nextIndex, }
+    const newGroup = { id, title, isPending, items: {}, tags, archived: false, createdAt: Date.now(), orderIndex: nextIndex, }
     const updated = { ...scheduleGroups, [id]: newGroup }
     set({ scheduleGroups: updated })
     get().updateDashboardGroups("scheduleGroups", updated)
@@ -415,6 +415,242 @@ const useFinance = create((set, get) => ({
     get().syncDashboard()
     get().saveUserData()
   },
+
+  addTransferTransaction: (fromDashboardId, fromGroupId, toDashboardId, toGroupId, baseItem) => {
+    const { dashboardData, updateDashboardGroups } = get()
+
+    const fromGroups = dashboardData[fromDashboardId]?.scheduleGroups || {}
+    const toGroups = dashboardData[toDashboardId]?.scheduleGroups || {}
+
+    const fromGroup = fromGroups[fromGroupId]
+    const toGroup = toGroups[toGroupId]
+    if (!fromGroup || !toGroup) return
+
+    const fromId = nanoid()
+    const toId = nanoid()
+
+    const now = Date.now()
+
+    const fromItem = {
+      id: fromId,
+      ...baseItem,
+      category: "Transfer",
+      amount: Math.abs(baseItem.amount) * -1, // Outgoing
+      transferDirection: "outgoing",
+      transferTo: toDashboardId,
+      linkedTransactionId: toId,
+      createdAt: now,
+      orderIndex: Object.keys(fromGroup.items).length,
+      archived: false,
+    }
+
+    const toItem = {
+      id: toId,
+      title: `Received from ${get().dashboards.find(d => d.id === fromDashboardId)?.name || 'Unknown'}`,
+      amount: Math.abs(baseItem.amount), // Incoming
+      icon: baseItem.icon,
+      date: baseItem.date,
+      category: "Transfer",
+      repeat: false,
+      isPending: false,
+      transferDirection: "incoming",
+      transferFrom: fromDashboardId,
+      linkedTransactionId: fromId,
+      createdAt: now,
+      orderIndex: Object.keys(toGroup.items).length,
+      archived: false,
+    }
+
+    // ✅ Add to sender group
+    const updatedFromItems = { ...fromGroup.items, [fromId]: fromItem }
+    const updatedFromGroup = { ...fromGroup, items: updatedFromItems }
+    const updatedFromGroups = { ...fromGroups, [fromGroupId]: updatedFromGroup }
+
+    // ✅ Add to receiver group
+    const updatedToItems = { ...toGroup.items, [toId]: toItem }
+    const updatedToGroup = { ...toGroup, items: updatedToItems }
+    const updatedToGroups = { ...toGroups, [toGroupId]: updatedToGroup }
+
+    // ✅ Commit both group updates
+    const newDashboardData = {
+      ...dashboardData,
+      [fromDashboardId]: {
+        ...dashboardData[fromDashboardId],
+        scheduleGroups: updatedFromGroups,
+        lastModified: now,
+      },
+      [toDashboardId]: {
+        ...dashboardData[toDashboardId],
+        scheduleGroups: updatedToGroups,
+        lastModified: now,
+      },
+    }
+
+    set({ dashboardData: newDashboardData })
+
+    // Sync current scheduleGroups if you’re on fromDashboard
+    const currentDashboardId = get().currentDashboardId
+    if (currentDashboardId === fromDashboardId) {
+      set({ scheduleGroups: updatedFromGroups })
+    }
+
+    // Save and sync
+    get().saveUserData()
+  },
+  editTransferTransaction: (dashboardId, groupId, itemId, updatedFields) => {
+    const { dashboardData } = get();
+
+    const group = dashboardData[dashboardId]?.scheduleGroups?.[groupId];
+    const item = group?.items?.[itemId];
+    if (!item || item.category !== "Transfer") return;
+
+    const linkedId = item.linkedTransactionId;
+    const linkedDashboardId =
+      item.transferDirection === "outgoing" ? item.transferTo : item.transferFrom;
+
+    const linkedGroups = dashboardData[linkedDashboardId]?.scheduleGroups || {};
+    const linkedGroupId = Object.values(linkedGroups).find((g) =>
+      Object.keys(g.items).includes(linkedId)
+    )?.id;
+
+    if (!linkedGroupId) return;
+
+    const rawAmount = Math.abs(updatedFields.amount);
+
+    // 🧠 Determine signs based on direction
+    const updatedItem = {
+      ...item,
+      ...updatedFields,
+      amount: item.transferDirection === "outgoing" ? -rawAmount : rawAmount,
+    };
+
+    const linkedItem = linkedGroups[linkedGroupId]?.items[linkedId]; // 🛠️ restore this line
+
+    const updatedLinked = {
+      ...linkedItem,
+      amount: item.transferDirection === "outgoing" ? rawAmount : -rawAmount,
+      date: updatedFields.date,
+      icon: updatedFields.icon,
+    };
+
+
+
+    // ✅ Update both dashboardData entries
+    const updatedDashboardData = {
+      ...dashboardData,
+      [dashboardId]: {
+        ...dashboardData[dashboardId],
+        scheduleGroups: {
+          ...dashboardData[dashboardId].scheduleGroups,
+          [groupId]: {
+            ...group,
+            items: {
+              ...group.items,
+              [itemId]: updatedItem,
+            },
+          },
+        },
+        lastModified: Date.now(),
+      },
+      [linkedDashboardId]: {
+        ...dashboardData[linkedDashboardId],
+        scheduleGroups: {
+          ...dashboardData[linkedDashboardId].scheduleGroups,
+          [linkedGroupId]: {
+            ...linkedGroups[linkedGroupId],
+            items: {
+              ...linkedGroups[linkedGroupId].items,
+              [linkedId]: updatedLinked,
+            },
+          },
+        },
+        lastModified: Date.now(),
+      },
+    };
+
+    set({ dashboardData: updatedDashboardData });
+
+    // ✅ Also update scheduleGroups in memory if editing current dashboard
+    const currentDashboardId = get().currentDashboardId;
+    if (currentDashboardId === dashboardId) {
+      set({
+        scheduleGroups: updatedDashboardData[dashboardId].scheduleGroups,
+      });
+    }
+    if (currentDashboardId === linkedDashboardId) {
+      set({
+        scheduleGroups: updatedDashboardData[linkedDashboardId].scheduleGroups,
+      });
+    }
+
+    get().saveUserData();
+  },
+
+  deleteTransferTransaction: (dashboardId, groupId, itemId) => {
+    const { dashboardData, currentDashboardId, saveUserData } = get();
+
+    const group = dashboardData[dashboardId]?.scheduleGroups?.[groupId];
+    const item = group?.items?.[itemId];
+    if (!item || item.category !== "Transfer") return;
+
+    const linkedId = item.linkedTransactionId;
+    const linkedDashboardId =
+      item.transferDirection === "outgoing" ? item.transferTo : item.transferFrom;
+
+    const linkedGroups = dashboardData[linkedDashboardId]?.scheduleGroups || {};
+    const linkedGroupId = Object.entries(linkedGroups).find(([_, g]) =>
+      Object.keys(g.items).includes(linkedId)
+    )?.[0];
+
+    if (!linkedGroupId) return;
+
+    // ❌ Delete main item
+    const updatedGroupItems = { ...group.items };
+    delete updatedGroupItems[itemId];
+    const updatedMainGroup = { ...group, items: updatedGroupItems };
+
+    // ❌ Delete linked item
+    const linkedGroup = linkedGroups[linkedGroupId];
+    const updatedLinkedItems = { ...linkedGroup.items };
+    delete updatedLinkedItems[linkedId];
+    const updatedLinkedGroup = { ...linkedGroup, items: updatedLinkedItems };
+
+    // ✅ Updated dashboardData
+    const updatedDashboardData = {
+      ...dashboardData,
+      [dashboardId]: {
+        ...dashboardData[dashboardId],
+        scheduleGroups: {
+          ...dashboardData[dashboardId].scheduleGroups,
+          [groupId]: updatedMainGroup,
+        },
+        lastModified: Date.now(),
+      },
+      [linkedDashboardId]: {
+        ...dashboardData[linkedDashboardId],
+        scheduleGroups: {
+          ...dashboardData[linkedDashboardId].scheduleGroups,
+          [linkedGroupId]: updatedLinkedGroup,
+        },
+        lastModified: Date.now(),
+      },
+    };
+
+    // ✅ Set updated data
+    set({ dashboardData: updatedDashboardData });
+
+    // ✅ Update scheduleGroups in memory for whichever dashboard you're on
+    if (currentDashboardId === dashboardId) {
+      set({ scheduleGroups: updatedDashboardData[dashboardId].scheduleGroups });
+    }
+    if (currentDashboardId === linkedDashboardId) {
+      set({ scheduleGroups: updatedDashboardData[linkedDashboardId].scheduleGroups });
+    }
+
+    saveUserData();
+  },
+
+
 }))
 
 export default useFinance

@@ -6,7 +6,7 @@ import AddScheduleModal from "./AddScheduleModal"
 import TextInputModal from "./TextInputModal"
 import ConfirmDialog from "./ConfirmDialog"
 import toast from "react-hot-toast"
-import { IndianRupee, CirclePlus } from "lucide-react"
+import { IndianRupee, CirclePlus, Link } from "lucide-react"
 import { categoryIcons, categoryColors, iconMap } from "../constants/categories"
 import getItemsForMonth from "../utils/getItemsForMonth"
 
@@ -40,126 +40,145 @@ export default function ScheduleList({ selectedDate }) {
       {Object.values(scheduleGroups)
         .filter((g) => !g.isPending)
         .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)).map((group) => {
-        const items = getItemsForMonth([group], selectedDate)
+          const items = getItemsForMonth([group], selectedDate)
 
-        const totalAmount = items
-          .filter((item) => item && typeof item.amount === "number")
-          .reduce((acc, item) => acc + item.amount, 0)
+          const totalAmount = items
+            .filter((item) => item && typeof item.amount === "number")
+            .reduce((acc, item) => acc + item.amount, 0)
 
-        return (
-          <div key={group.id} className="mb-6 relative">
-            {/* Group header with title and total */}
-            <div className="flex justify-between items-center text-sm text-gray-400 mb-2 px-1">
-              <div className="flex items-center gap-2">
-                <span className="uppercase">{group.title || "Untitled"}</span>
-                <span className={`font-semibold text-xs inline-flex items-center gap-1 ${totalAmount < 0 ? "text-red-400" : "text-green-400"}`}>
-                  <IndianRupee size={12} />
-                  {totalAmount.toFixed(2)}
-                </span>
-              </div>
-
-              <div className="relative">
-                <button
-                  onClick={() => setMenuOpenId(menuOpenId === group.id ? null : group.id)}
-                  className="text-gray-400 hover:text-white text-lg px-2"
-                >
-                  ⋮
-                </button>
-
-                {menuOpenId === group.id && (
-                  <div
-                    ref={menuRef}
-                    className="absolute right-0 mt-2 w-40 bg-neutral-800 shadow-lg rounded-lg z-10 border border-neutral-700"
-                  >
-                    <button
-                      className="block w-full text-left px-4 py-2 hover:bg-neutral-700 text-sm text-yellow-400"
-                      onClick={() => {
-                        setEditGroupInfo({ id: group.id, title: group.title })
-                        setMenuOpenId(null)
-                      }}
-                    >
-                      Rename
-                    </button>
-                    <button
-                      className="block w-full text-left px-4 py-2 hover:bg-neutral-700 text-sm text-red-400"
-                      onClick={() => {
-                        setDeleteGroupId(group.id)
-                        setMenuOpenId(null)
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Group items */}
-            <div className="bg-neutral-800 rounded-xl p-4 flex flex-col gap-3">
-              {items.length === 0 ? (
-                <div className="text-center text-gray-500 text-sm italic">
-                  No items in this group yet
+          return (
+            <div key={group.id} className="mb-6 relative">
+              {/* Group header with title and total */}
+              <div className="flex justify-between items-center text-sm text-gray-400 mb-2 px-1">
+                <div className="flex items-center gap-2">
+                  <span className="uppercase">{group.title || "Untitled"}</span>
+                  <span className={`font-semibold text-xs inline-flex items-center gap-1 ${totalAmount < 0 ? "text-red-400" : "text-green-400"}`}>
+                    <IndianRupee size={12} />
+                    {totalAmount.toFixed(2)}
+                  </span>
                 </div>
-              ) : (
-                items
-                .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0)) // or orderIndex
-                .map((item) => {
-                  const Icon = categoryIcons[item.category?.toLowerCase()] || categoryIcons.default
-                  const colorClass = categoryColors[item.category?.toLowerCase()] ||
-                    (item.amount < 0 ? "bg-red-500/20 text-red-400" : "bg-green-500/20 text-green-400")
 
-                  return (
+                <div className="relative">
+                  <button
+                    onClick={() => setMenuOpenId(menuOpenId === group.id ? null : group.id)}
+                    className="text-gray-400 hover:text-white text-lg px-2"
+                  >
+                    ⋮
+                  </button>
+
+                  {menuOpenId === group.id && (
                     <div
-                      key={item.id + item.date}
-                      className="py-3 flex justify-between items-start text-sm cursor-pointer border-b border-neutral-700 last:border-b-0"
-                      onClick={() => setEditInfo({ groupId: group.id, itemId: item.id })}
+                      ref={menuRef}
+                      className="absolute right-0 mt-2 w-40 bg-neutral-800 shadow-lg rounded-lg z-10 border border-neutral-700"
                     >
-                      <div className="flex gap-3 items-center">
-                        <div className="text-xl">
-                          {iconMap[item.icon] || <Icon size={20} className="text-yellow-400" />}
-                        </div>
-                        <div className="text-white flex flex-col items-start">
-                          <span className="font-medium">{item.title}</span>
-                          {item.category && (
-                            <span
-                              className={`text-xs capitalize px-2 py-0.5 rounded w-fit mt-1 ${colorClass}`}
-                            >
-                              {typeof item.category === "string"
-                                ? item.category
-                                : JSON.stringify(item.category)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right space-y-1">
-                        <div className="text-xs text-gray-400">
-                          {item.date && new Date(item.date).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </div>
-                        <div className={`text-sm font-semibold px-2 py-1 rounded-md inline-flex items-center ${colorClass}`}>
-                          <IndianRupee size={14} />
-                          {item.amount.toFixed(2)}
-                        </div>
-                      </div>
+                      <button
+                        className="block w-full text-left px-4 py-2 hover:bg-neutral-700 text-sm text-yellow-400"
+                        onClick={() => {
+                          setEditGroupInfo({ id: group.id, title: group.title })
+                          setMenuOpenId(null)
+                        }}
+                      >
+                        Rename
+                      </button>
+                      <button
+                        className="block w-full text-left px-4 py-2 hover:bg-neutral-700 text-sm text-red-400"
+                        onClick={() => {
+                          setDeleteGroupId(group.id)
+                          setMenuOpenId(null)
+                        }}
+                      >
+                        Delete
+                      </button>
                     </div>
-                  )
-                })
-              )}
+                  )}
+                </div>
+              </div>
 
-              <button
-                onClick={() => setEditInfo({ groupId: group.id, itemId: null })}
-                className="text-white-400 hover:text-yellow-300 text-sm mt-2 flex items-center gap-2"
-              >
-                <CirclePlus size={16} />
-                <span>Add Item</span>
-              </button>
+              {/* Group items */}
+              <div className="bg-neutral-800 rounded-xl p-4 flex flex-col">
+                {items.length === 0 ? (
+                  <div className="text-center text-gray-500 text-sm italic">
+                    No items in this group yet
+                  </div>
+                ) : (
+                  items
+                    .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0)) // or orderIndex
+                    .map((item) => {
+                      const Icon = categoryIcons[item.category?.toLowerCase()] || categoryIcons.default
+                      const colorClass = categoryColors[item.category?.toLowerCase()] ||
+                        (item.amount < 0 ? "bg-red-500/20 text-red-400" : "bg-green-500/20 text-green-400")
+
+                      return (
+                        <div
+                          key={item.id + item.date}
+                          className="py-2 flex justify-between items-start text-sm cursor-pointer border-b border-neutral-700 last:border-b-0"
+                          onClick={() => setEditInfo({ groupId: group.id, itemId: item.id })}
+                        >
+                          <div className="flex gap-3 items-center">
+                            <div className="text-xl">
+                              {iconMap[item.icon] || <Icon size={20} className="text-yellow-400" />}
+                            </div>
+                            <div className="text-white flex flex-col items-start">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="font-medium text-white text-[14px] leading-snug line-clamp-2 max-h-[2.6em] text-left block"
+                                  title={item.title}
+                                >
+                                  {item.title}
+                                </span>
+
+
+
+
+                              </div>
+
+                              {item.category && (
+                                <span className={`text-xs capitalize px-2 py-0.5 rounded w-fit mt-1 flex items-center gap-1 ${colorClass}`}>
+                                  {typeof item.category === "string"
+                                    ? item.category
+                                    : JSON.stringify(item.category)}
+
+                                  {item.category === "Transfer" && (
+                                    <span title="Linked Transfer">
+                                      <Link size={12} className="inline ml-1" />
+                                    </span>
+                                  )}
+
+                                </span>
+
+                              )}
+                            </div>
+
+                          </div>
+                          <div className="text-right space-y-1">
+                            <div className="text-xs text-gray-400">
+                              {item.date && new Date(item.date).toLocaleDateString("en-IN", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })}
+                            </div>
+                            <div className={`text-sm font-semibold px-2 py-1 rounded-md inline-flex items-center ${colorClass}`}>
+                              <IndianRupee size={14} />
+                              {item.amount.toFixed(2)}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })
+                )}
+
+                <button
+                  onClick={() => setEditInfo({ groupId: group.id, itemId: null })}
+                  className="text-white-400 hover:text-yellow-300 text-sm mt-3 flex items-center gap-2"
+                >
+                  <CirclePlus size={16} />
+                  <span>Add Item</span>
+                </button>
+              </div>
             </div>
-          </div>
-        )
-      })}
+          )
+        })}
 
       {/* Modals */}
       {editInfo && (
@@ -169,7 +188,7 @@ export default function ScheduleList({ selectedDate }) {
           defaultValues={
             editInfo.itemId ?
               scheduleGroups[editInfo.groupId]?.items[editInfo.itemId] :
-              { title: "", amount: 0, date: "", icon: "ReceiptIndianRupee", category: "", repeat: false, repeatEndDate: "" }
+              { title: "", amount: 0, date: "", icon: "", category: "", repeat: false, repeatEndDate: "" }
           }
           groupId={editInfo.groupId}
           fallbackMonthDate={selectedDate}
