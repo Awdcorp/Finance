@@ -74,6 +74,8 @@ export default function TotalBalance({ selectedDate }) {
         date: selectedDate.toISOString().split("T")[0],
         category: "Miscellaneous",
         notes: "Auto-added from Update Balance",
+        repeat: null,
+        repeatEndDate: null,
       });
       toast.success("Balance adjustment added");
       setIsModalOpen(false);
@@ -88,7 +90,7 @@ export default function TotalBalance({ selectedDate }) {
       <div className="bg-neutral-800 rounded-xl p-4 shadow-md text-center space-y-3">
         {/* Label */}
         <div className="text-sm text-gray-400 tracking-wide uppercase">
-          Total Balance
+          Current Balance
         </div>
 
         {/* Balance Value */}
