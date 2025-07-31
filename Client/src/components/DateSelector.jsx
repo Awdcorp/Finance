@@ -52,10 +52,14 @@ export default function DateSelector({
       >
         <DatePicker
         selected={selectedDate}
-        onChange={(d) => {
-            setDate(d.toISOString().split("T")[0]);
-            setShowCalendar(false);
-        }}
+onChange={(d) => {
+  if (d) {
+    const localDateStr = d.toLocaleDateString("en-CA"); // ✅ fixed format in local time
+    setDate(localDateStr);
+    setShowCalendar(false);
+  }
+}}
+
         inline
         calendarStartDay={1}
         showMonthDropdown

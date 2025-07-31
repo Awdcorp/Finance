@@ -71,7 +71,7 @@ export default function TotalBalance({ selectedDate }) {
       addItemToGroup(targetGroupId, {
         title: "Balance Adjustment",
         amount: diff,
-        date: selectedDate.toISOString().split("T")[0],
+        date: selectedDate.toLocaleDateString("en-CA"),
         category: "Miscellaneous",
         notes: "Auto-added from Update Balance",
         repeat: null,
