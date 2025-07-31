@@ -16,7 +16,7 @@ export default function CalendarGrid({ items = [], selectedDate }) {
     const updateClock = () => {
       const now = new Date();
       setClock(
-        now.toLocaleTimeString("en-GB", {
+        now.toLocaleTimeString("en-IN", {
           hour: "2-digit",
           minute: "2-digit",
           second: "2-digit",

@@ -40,7 +40,7 @@ export default function ScheduleList({ selectedDate }) {
       {Object.values(scheduleGroups)
         .filter((g) => !g.isPending)
         .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)).map((group) => {
-          const items = getItemsForMonth([group], selectedDate)
+          const items = getItemsForMonth({ [group.id]: group }, selectedDate)
 
           const totalAmount = items
             .filter((item) => item && typeof item.amount === "number")
