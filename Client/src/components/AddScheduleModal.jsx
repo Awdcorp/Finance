@@ -8,7 +8,7 @@ import toast from 'react-hot-toast'
 import ConfirmDialog from './ConfirmDialog'
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
-import { categoryOptions, iconOptions } from "../constants/categories"
+import { categoryOptions, iconOptions, categoryIcons } from "../constants/categories"
 import AmountInput from "./AmountInput"
 import GroupSelectorModal from './GroupSelectorModal'
 import DateSelector from "./DateSelector";
@@ -48,7 +48,7 @@ export default function AddScheduleModal({
   const dashboardData = useFinance((state) => state.dashboardData)
   const addTransferTransaction = useFinance((state) => state.addTransferTransaction)
   const [showTransferCategoryWarning, setShowTransferCategoryWarning] = useState(false);
-
+  const [iconManuallySelected, setIconManuallySelected] = useState(false)
   const [toDashboardId, setToDashboardId] = useState(null)
 
   const scheduleGroups = useFinance((state) => state.scheduleGroups)
@@ -65,11 +65,14 @@ export default function AddScheduleModal({
       setDate(defaultValues.date || '')
       setCategory(defaultValues.category || '')
       setIcon(defaultValues.icon || 'ReceiptIndianRupee')
+      setIconManuallySelected(true)
       setRepeat(defaultValues.repeat ?? true)
       setRepeatEndDate(defaultValues.repeatEndDate || '')
       setIsPending(defaultValues.isPending || false)
       setTargetGroupId(groupId || null)
       setToDashboardId(defaultValues.transferTo || defaultValues.transferFrom || null)
+        } else {
+    setIconManuallySelected(false)
     }
   }, [isOpen, defaultValues])
 
@@ -263,17 +266,25 @@ export default function AddScheduleModal({
                 <label className="block mb-0.5 text-sm">Category</label>
                 <select
                   value={category}
-                  onChange={(e) => {
-                    if (
-                      isEditMode &&
-                      defaultValues.category === "Transfer" &&
-                      e.target.value !== "Transfer"
-                    ) {
-                      setShowTransferCategoryWarning(true); // 🚫 Block change attempt
-                    } else {
-                      setCategory(e.target.value); // ✅ Normal change
-                    }
-                  }}
+onChange={(e) => {
+  const selected = e.target.value;
+
+  if (
+    isEditMode &&
+    defaultValues.category === "Transfer" &&
+    selected !== "Transfer"
+  ) {
+    setShowTransferCategoryWarning(true);
+  } else {
+    setCategory(selected);
+
+    // 🟢 Auto-select icon if not manually selected
+    if (!iconManuallySelected && categoryIcons[selected]) {
+      setIcon(categoryIcons[selected]);
+    }
+  }
+}}
+
                   className="w-full px-2 py-1.5 bg-zinc-800 rounded-md border border-zinc-600"
                 >
 
@@ -321,7 +332,10 @@ export default function AddScheduleModal({
                     type="button"
                     className={`p-1.5 rounded-md w-8 h-8 flex items-center justify-center ${icon === key ? "bg-blue-500" : "bg-neutral-800"
                       }`}
-                    onClick={() => setIcon(key)}
+                    onClick={() => {
+  setIcon(key);
+  setIconManuallySelected(true); // 🟢 Mark as manual selection
+}}
                   >
                     <Icon size={16} />
                   </button>

@@ -53,15 +53,31 @@ export default function Dashboard({ user }) {
   );
 
   // Aggregate income, expenses, and balance
-  const { income, expenses, totalBalance } = useMemo(() => {
-    const income = currentMonthItems.filter((item) => item.amount > 0).reduce((sum, item) => sum + item.amount, 0);
-    const expenses = currentMonthItems.filter((item) => item.amount < 0).reduce((sum, item) => sum + item.amount, 0);
-    return {
-      income,
-      expenses,
-      totalBalance: income + expenses,
-    };
-  }, [currentMonthItems]);
+const { income, expenses, totalBalance } = useMemo(() => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalize time for date-only comparison
+
+  // Only include items that are dated today or earlier
+  const filteredItems = currentMonthItems.filter(item => {
+    const itemDate = new Date(item.date);
+    itemDate.setHours(0, 0, 0, 0);
+    return itemDate <= today;
+  });
+
+  const income = filteredItems
+    .filter((item) => item.amount > 0)
+    .reduce((sum, item) => sum + item.amount, 0);
+
+  const expenses = filteredItems
+    .filter((item) => item.amount < 0)
+    .reduce((sum, item) => sum + item.amount, 0);
+
+  return {
+    income,
+    expenses,
+    totalBalance: income + expenses,
+  };
+}, [currentMonthItems]);
 
   return (
     <div className="min-h-screen bg-neutral-900 text-white flex flex-col lg:flex-row">

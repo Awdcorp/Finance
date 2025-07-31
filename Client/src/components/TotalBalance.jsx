@@ -1,59 +1,70 @@
-import React, { useState } from "react"
-import useFinance from "../state/finance"
-import getItemsForMonth from "../utils/getItemsForMonth"
-import getProjectedBalance from "../utils/getProjectedBalance"
-import { toast } from "react-hot-toast"
-import { Pencil, IndianRupee } from "lucide-react"
-import AmountInput from "./AmountInput"
+import React, { useState } from "react";
+import useFinance from "../state/finance";
+import getProjectedBalance from "../utils/getProjectedBalance";
+import { toast } from "react-hot-toast";
+import { Pencil, IndianRupee } from "lucide-react";
+import AmountInput from "./AmountInput";
 
 export default function TotalBalance({ selectedDate }) {
-  const scheduleGroups = useFinance((state) => state.scheduleGroups)
-  const addItemToGroup = useFinance((state) => state.addItemToGroup)
+  const scheduleGroups = useFinance((state) => state.scheduleGroups);
+  const addItemToGroup = useFinance((state) => state.addItemToGroup);
 
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [actualBalance, setActualBalance] = useState("")
-  const [isPositive, setIsPositive] = useState(true)
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [actualBalance, setActualBalance] = useState("");
+  const [isPositive, setIsPositive] = useState(true);
 
-  // Get current month's scheduled items only
-  const items = getItemsForMonth(scheduleGroups, selectedDate)
+  // === ✅ Actual balance logic: ALL scheduled items <= today ===
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  const income = items
+  const allScheduledItems = Object.values(scheduleGroups)
+    .filter((group) => !group.isPending)
+    .flatMap((group) => Object.values(group.items || {}))
+    .filter((item) => {
+      const itemDate = new Date(item.date);
+      itemDate.setHours(0, 0, 0, 0);
+      return itemDate <= today;
+    });
+
+  const income = allScheduledItems
     .filter((item) => item.amount > 0)
-    .reduce((acc, item) => acc + item.amount, 0)
+    .reduce((acc, item) => acc + item.amount, 0);
 
-  const expenses = items
+  const expenses = allScheduledItems
     .filter((item) => item.amount < 0)
-    .reduce((acc, item) => acc + item.amount, 0)
+    .reduce((acc, item) => acc + item.amount, 0);
 
-  const total = income + expenses
+  const total = income + expenses;
 
-  const projectedBalance = getProjectedBalance(scheduleGroups, selectedDate)
+  // === ✅ Projected balance (this month and earlier, recurring included) ===
+  const projectedBalance = getProjectedBalance(scheduleGroups, selectedDate);
 
   const handleUpdateBalance = () => {
-    const parsed = parseFloat(isPositive ? actualBalance : `-${actualBalance}`)
+    const parsed = parseFloat(isPositive ? actualBalance : `-${actualBalance}`);
     if (isNaN(parsed)) {
-      toast.error("Please enter a valid balance")
-      return
+      toast.error("Please enter a valid balance");
+      return;
     }
 
-    const diff = parsed - total
+    const diff = parsed - total;
     if (diff === 0) {
-      toast("Balance already matches")
-      setIsModalOpen(false)
-      return
+      toast("Balance already matches");
+      setIsModalOpen(false);
+      return;
     }
 
-    const selectedMonth = selectedDate.getMonth()
-    const selectedYear = selectedDate.getFullYear()
+    const selectedMonth = selectedDate.getMonth();
+    const selectedYear = selectedDate.getFullYear();
 
-    // ✅ Always add to the "Daily Transactions" group
     const targetGroupId = Object.keys(scheduleGroups).find(
-      (id) => scheduleGroups[id].title === "Daily Transactions" && !scheduleGroups[id].isPending
-    )
+      (id) =>
+        scheduleGroups[id].title === "Daily Transactions" &&
+        !scheduleGroups[id].isPending
+    );
 
     if (!targetGroupId) {
-      toast.error("Couldn't find 'Daily Transactions' group")
-      return
+      toast.error("Couldn't find 'Daily Transactions' group");
+      return;
     }
 
     try {
@@ -63,14 +74,14 @@ export default function TotalBalance({ selectedDate }) {
         date: selectedDate.toISOString().split("T")[0],
         category: "Miscellaneous",
         notes: "Auto-added from Update Balance",
-      })
-      toast.success("Balance adjustment added")
-      setIsModalOpen(false)
-      setActualBalance("")
+      });
+      toast.success("Balance adjustment added");
+      setIsModalOpen(false);
+      setActualBalance("");
     } catch (e) {
-      toast.error("Failed to update balance")
+      toast.error("Failed to update balance");
     }
-  }
+  };
 
   return (
     <div className="w-full px-4">
@@ -80,10 +91,20 @@ export default function TotalBalance({ selectedDate }) {
           Total Balance
         </div>
 
-        {/* Balance Value with Edit */}
+        {/* Balance Value */}
         <div className="flex items-center justify-center gap-2 text-white">
           <IndianRupee size={30} />
-          <span className="text-4xl font-extrabold">{total.toFixed(2)}</span>
+          <span
+            className={`text-4xl font-extrabold ${
+              total < 0
+                ? "text-red-400"
+                : total > 0
+                ? "text-green-400"
+                : "text-white"
+            }`}
+          >
+            {total.toFixed(2)}
+          </span>
           <button
             onClick={() => setIsModalOpen(true)}
             className="text-yellow-400 hover:scale-110 transition"
@@ -103,7 +124,8 @@ export default function TotalBalance({ selectedDate }) {
           {selectedDate.toLocaleString("default", {
             month: "short",
           })}
-          : <IndianRupee size={14} className="inline-block" /> {projectedBalance.toFixed(2)}
+          : <IndianRupee size={14} className="inline-block" />{" "}
+          {projectedBalance.toFixed(2)}
         </div>
       </div>
 
@@ -139,5 +161,5 @@ export default function TotalBalance({ selectedDate }) {
         </div>
       )}
     </div>
-  )
+  );
 }
