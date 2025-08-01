@@ -137,7 +137,7 @@ export default function PendingGroupList({ selectedDate }) {
             title: "",
             amount: 0,
             date: "",
-            icon: "ReceiptIndianRupee",
+            icon: "",
             category: "",
             repeat: false,
             repeatEndDate: "",

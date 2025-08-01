@@ -34,7 +34,6 @@ export default function Dashboard({ user }) {
 
   // Sync data and reset calendar when dashboard changes
   useEffect(() => {
-  console.log("Dashboard changed → resetting calendar month");
     syncDashboard();
     setSelectedDate(new Date());
   }, [currentDashboardId]);
@@ -111,7 +110,7 @@ const { income, expenses, totalBalance } = useMemo(() => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* LEFT */}
           <div>
-            <TotalBalance amount={totalBalance} selectedDate={selectedDate} />
+            <TotalBalance selectedDate={selectedDate} />
             <div className="flex justify-center lg:justify-start gap-4 mt-4 px-4">
               <BalanceCard label="Income" amount={income} type="income" />
               <BalanceCard label="Expenses" amount={Math.abs(expenses)} type="expense" />
