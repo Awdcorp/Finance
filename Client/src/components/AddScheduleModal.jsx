@@ -84,16 +84,21 @@ export default function AddScheduleModal({
     }
 
     const parsedAmount = parseFloat(isPositive ? amount : "-" + amount);
+    const formatDate = (d) => {
+      const dt = new Date(d);
+      return isNaN(dt) ? "" : dt.toISOString().slice(0, 10);
+    };
+    
     const newItem = {
       title,
       amount: parsedAmount,
-      date,
+      date: formatDate(new Date(date)),
       icon,
       category,
       repeat,
-      repeatEndDate: repeat ? repeatEndDate : "",
+      repeatEndDate: repeat ? formatDate(new Date(repeatEndDate)) : "",
       isPending,
-    };
+    };    
 
     if (!targetGroupId) {
       toast.error("No group found for this item type");

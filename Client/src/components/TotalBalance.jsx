@@ -71,11 +71,12 @@ export default function TotalBalance({ selectedDate }) {
       addItemToGroup(targetGroupId, {
         title: "Balance Adjustment",
         amount: diff,
-        date: selectedDate.toLocaleDateString("en-IN"),
+        date: selectedDate.toISOString().slice(0, 10),
         category: "Miscellaneous",
         notes: "Auto-added from Update Balance",
         repeat: null,
         repeatEndDate: null,
+        createdAt: Date.now(),
       });
       toast.success("Balance adjustment added");
       setIsModalOpen(false);
